@@ -24,6 +24,8 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
 - **General Rules** provides an autosaving operational knowledge base.
 - **Links & Credentials** syncs website metadata to your private cloud
   workspace while keeping passwords only in Windows Credential Manager.
+- **Daily recovery snapshots** retain a password-redacted cloud copy from
+  before the first workspace change each day for 90 days.
 - Restrained animation, responsive navigation, keyboard-friendly dialogs, and
   reduced-motion support are built into the shared component system.
 
