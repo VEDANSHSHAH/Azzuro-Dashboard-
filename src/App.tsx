@@ -8,6 +8,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  UsersRound,
 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
@@ -36,8 +37,9 @@ import { LinksPage } from './pages/LinksPage'
 import { RulesPage } from './pages/RulesPage'
 import { TodayPage } from './pages/TodayPage'
 import { ThingsToRememberPage } from './pages/ThingsToRememberPage'
+import { FarabiSobitPage } from './pages/FarabiSobitPage'
 
-type PageId = 'today' | 'day' | 'reminders' | 'cleaning' | 'rules' | 'links'
+type PageId = 'today' | 'day' | 'reminders' | 'cleaning' | 'rules' | 'links' | 'assignments'
 
 const navigation: readonly NavigationItem[] = [
   { id: 'today', label: 'Today’s Work', icon: CalendarCheck2 },
@@ -46,6 +48,7 @@ const navigation: readonly NavigationItem[] = [
   { id: 'cleaning', label: 'Cleaning', icon: Sparkles },
   { id: 'rules', label: 'General Rules', icon: BookOpenText },
   { id: 'links', label: 'Links & Credentials', icon: Link2 },
+  { id: 'assignments', label: 'Farabi & Sobit', icon: UsersRound },
 ]
 
 const pageSearchLabels: Record<PageId, string> = {
@@ -55,6 +58,7 @@ const pageSearchLabels: Record<PageId, string> = {
   cleaning: 'Search cleaning logs',
   rules: 'Search general rules',
   links: 'Search links and usernames',
+  assignments: 'Search Farabi and Sobit work',
 }
 
 function App() {
@@ -271,6 +275,19 @@ function App() {
           {activePage === 'cleaning' ? <CleaningPage workspace={workspace} query={query} /> : null}
           {activePage === 'rules' ? <RulesPage workspace={workspace} query={query} /> : null}
           {activePage === 'links' ? <LinksPage workspace={workspace} query={query} /> : null}
+          {activePage === 'assignments' ? (
+            <FarabiSobitPage
+              tasks={workspace.data.tasks}
+              query={query}
+              onEditTask={handleEditTask}
+              onCreateFollowUp={handleCreateFollowUp}
+              onConvertCallPoint={handleConvertCallPoint}
+              onShiftTask={handleShiftTask}
+              onDeleteTask={workspace.deleteTask}
+              onStatusChange={workspace.changeTaskStatus}
+              onAssignmentStateChange={handleAssignmentStateChange}
+            />
+          ) : null}
         </motion.div>
       </AnimatePresence>
 

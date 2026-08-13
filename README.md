@@ -19,6 +19,8 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
 - **Assignment handoff** adds a nested step for each person: mark whether you
   still need to give them the task or it has already been given, with a clear
   amber/green highlight on the card.
+- **Farabi & Sobit** provides a dedicated seventh workspace page that groups
+  each personâ€™s assigned tasks and calls by added and scheduled date.
 - **Calls** can be scheduled with talking points, assigned, completed with a
   written outcome, and reviewed alongside the day's other work.
 - **Call outcome points** can become linked follow-up tasks in one click, so an
