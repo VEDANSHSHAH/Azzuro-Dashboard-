@@ -9,6 +9,10 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
 - **Day-wise** always opens on today and keeps separate records for every date.
 - **Work Calendar** shows tasks across the month and opens any day directly.
 - **Task shifting** moves unfinished work to another operating day.
+- **Not done filter** focuses Todayâ€™s Work or any Day-wise page on unfinished
+  tasks and calls without changing or hiding the underlying records.
+- **Copy all** creates one paste-ready daily summary with every note, task,
+  call, finding, outcome point, scheduled date, and assignment handoff detail.
 - **Scheduled for** keeps a task on the day it was added while also showing it
   on an optional future scheduled date; remove that scheduled date anytime.
 - **Assigned to** keeps task ownership visible on every task card.

@@ -27,6 +27,7 @@ import {
 } from './features/work-modals'
 import { FollowUpTaskModal } from './features/FollowUpTaskModal'
 import { CallEditorModal } from './features/CallEditorModal'
+import { copyTextToClipboard, formatWorkdayForClipboard, type WorkdayCopyData } from './features/workday-copy'
 import { useWorkspace } from './hooks'
 import type { CallPoint, Property, Task, TaskAssignmentState } from './domain'
 import { CleaningPage } from './pages/CleaningPage'
@@ -62,6 +63,7 @@ function App() {
   const [activePage, setActivePage] = useState<PageId>('today')
   const [query, setQuery] = useState('')
   const [propertyFilter, setPropertyFilter] = useState<Property>('all')
+  const [showNotDoneOnly, setShowNotDoneOnly] = useState(false)
   const [workItemKind, setWorkItemKind] = useState<WorkItemKind | null>(null)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -87,9 +89,9 @@ function App() {
     return () => window.removeEventListener('keydown', focusSearch)
   }, [])
 
-  const notify = useCallback((title: string, description?: string) => {
+  const notify = useCallback((title: string, description?: string, tone: ToastMessage['tone'] = 'success') => {
     const id = crypto.randomUUID()
-    setToasts((current) => [...current, { id, title, description, tone: 'success', duration: 2600 }])
+    setToasts((current) => [...current, { id, title, description, tone, duration: 2600 }])
   }, [])
 
   const dismissToast = useCallback((id: string) => {
@@ -151,6 +153,15 @@ function App() {
     notify(
       state === 'given' ? 'Handoff marked given' : 'Handoff needs giving',
     )
+  }
+
+  async function handleCopyAll(data: WorkdayCopyData) {
+    try {
+      await copyTextToClipboard(formatWorkdayForClipboard(data))
+      notify('Day copied', 'Notes, tasks, calls, findings, and handoff details are ready to paste.')
+    } catch {
+      notify('Could not copy the day', 'Please try again.', 'error')
+    }
   }
 
   const workModalDate = activePage === 'today' ? workspace.today : workspace.selectedDate
@@ -231,6 +242,9 @@ function App() {
               onConvertCallPoint={handleConvertCallPoint}
               onShiftTask={handleShiftTask}
               onAssignmentStateChange={handleAssignmentStateChange}
+              showNotDoneOnly={showNotDoneOnly}
+              onToggleNotDone={() => setShowNotDoneOnly((current) => !current)}
+              onCopyAll={handleCopyAll}
             />
           ) : null}
           {activePage === 'day' ? (
@@ -248,6 +262,9 @@ function App() {
               onConvertCallPoint={handleConvertCallPoint}
               onShiftTask={handleShiftTask}
               onAssignmentStateChange={handleAssignmentStateChange}
+              showNotDoneOnly={showNotDoneOnly}
+              onToggleNotDone={() => setShowNotDoneOnly((current) => !current)}
+              onCopyAll={handleCopyAll}
             />
           ) : null}
           {activePage === 'reminders' ? <ThingsToRememberPage workspace={workspace} query={query} /> : null}

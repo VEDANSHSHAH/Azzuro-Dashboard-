@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { ArrowRight, PhoneCall, Plus } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Copy, PhoneCall, Plus } from 'lucide-react'
 import { Button, PageHeader } from '../components'
 import {
   fromISODate,
@@ -11,6 +11,7 @@ import {
 import type { WorkspaceApi } from '../hooks'
 import { WorkBoard } from '../features/WorkBoard'
 import { ReminderBanner } from '../features/ReminderBanner'
+import type { WorkdayCopyData } from '../features/workday-copy'
 
 interface TodayPageProps {
   workspace: WorkspaceApi
@@ -26,6 +27,9 @@ interface TodayPageProps {
   onConvertCallPoint: (call: Task, point: CallPoint) => void
   onShiftTask: (task: Task) => void
   onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
+  showNotDoneOnly: boolean
+  onToggleNotDone: () => void
+  onCopyAll: (data: WorkdayCopyData) => void
 }
 
 export function TodayPage({
@@ -42,8 +46,12 @@ export function TodayPage({
   onConvertCallPoint,
   onShiftTask,
   onAssignmentStateChange,
+  showNotDoneOnly,
+  onToggleNotDone,
+  onCopyAll,
 }: TodayPageProps) {
   const date = fromISODate(workspace.today)
+  const notDoneCount = workspace.todayTasks.filter((task) => task.status !== 'done').length
 
   return (
     <div className="page">
@@ -55,6 +63,26 @@ export function TodayPage({
         }
         actions={
           <>
+            <Button
+              variant={showNotDoneOnly ? 'primary' : 'secondary'}
+              leadingIcon={CheckCircle2}
+              aria-pressed={showNotDoneOnly}
+              onClick={onToggleNotDone}
+            >
+              Not done ({notDoneCount})
+            </Button>
+            <Button
+              variant="secondary"
+              leadingIcon={Copy}
+              onClick={() => onCopyAll({
+                date: workspace.today,
+                notes: workspace.todayNotes,
+                tasks: workspace.todayTasks,
+                allTasks: workspace.data.tasks,
+              })}
+            >
+              Copy all
+            </Button>
             <Button variant="secondary" trailingIcon={ArrowRight} onClick={onOpenDay}>Open day</Button>
             <Button variant="secondary" leadingIcon={PhoneCall} onClick={onAddCall}>Add call</Button>
             <Button leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
@@ -81,6 +109,7 @@ export function TodayPage({
         onDeleteTask={workspace.deleteTask}
         onStatusChange={workspace.changeTaskStatus}
         onAssignmentStateChange={onAssignmentStateChange}
+        showNotDoneOnly={showNotDoneOnly}
       />
     </div>
   )

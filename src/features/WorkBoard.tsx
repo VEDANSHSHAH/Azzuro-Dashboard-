@@ -31,6 +31,7 @@ interface WorkBoardProps {
   onDeleteTask: (id: string) => void
   onStatusChange: (id: string, status: TaskStatus) => void
   onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
+  showNotDoneOnly?: boolean
   showTaskDates?: boolean
 }
 
@@ -53,6 +54,7 @@ export function WorkBoard({
   onDeleteTask,
   onStatusChange,
   onAssignmentStateChange,
+  showNotDoneOnly = false,
   showTaskDates = false,
 }: WorkBoardProps) {
   const normalizedQuery = query.trim().toLocaleLowerCase()
@@ -66,7 +68,7 @@ export function WorkBoard({
       `${task.title} ${task.description} ${task.findings} ${task.callOutcome} ${task.callPoints.map((point) => point.text).join(' ')} ${task.assignedTo}`
         .toLocaleLowerCase()
         .includes(normalizedQuery)
-    return propertyMatches && queryMatches
+    return propertyMatches && queryMatches && (!showNotDoneOnly || task.status !== 'done')
   })
 
   const untouched = tasks.filter((task) => task.status === 'untouched').length
@@ -146,10 +148,16 @@ export function WorkBoard({
             ) : (
               <EmptyState
                 icon={ListChecks}
-                title={query || propertyFilter !== 'all' ? 'No matching tasks' : 'A clear runway'}
-                description={query || propertyFilter !== 'all' ? 'Try another search or property filter.' : 'Add the first task or call for this day when something comes up.'}
+                title={query || propertyFilter !== 'all' || showNotDoneOnly ? 'No matching tasks' : 'A clear runway'}
+                description={
+                  showNotDoneOnly && !query && propertyFilter === 'all'
+                    ? 'Everything for this day is marked done.'
+                    : query || propertyFilter !== 'all'
+                      ? 'Try another search or property filter.'
+                      : 'Add the first task or call for this day when something comes up.'
+                }
                 action={
-                  !query && propertyFilter === 'all' ? (
+                  !query && propertyFilter === 'all' && !showNotDoneOnly ? (
                     <>
                       <Button size="sm" variant="secondary" leadingIcon={PhoneCall} onClick={onAddCall}>Add call</Button>
                       <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task</Button>

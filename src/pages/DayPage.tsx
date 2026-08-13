@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { PhoneCall, Plus } from 'lucide-react'
+import { CheckCircle2, Copy, PhoneCall, Plus } from 'lucide-react'
 import { Button, DateNavigator, PageHeader } from '../components'
 import {
   fromISODate,
@@ -11,6 +11,7 @@ import {
 import type { WorkspaceApi } from '../hooks'
 import { WorkBoard } from '../features/WorkBoard'
 import { ReminderBanner } from '../features/ReminderBanner'
+import type { WorkdayCopyData } from '../features/workday-copy'
 
 interface DayPageProps {
   workspace: WorkspaceApi
@@ -26,6 +27,9 @@ interface DayPageProps {
   onConvertCallPoint: (call: Task, point: CallPoint) => void
   onShiftTask: (task: Task) => void
   onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
+  showNotDoneOnly: boolean
+  onToggleNotDone: () => void
+  onCopyAll: (data: WorkdayCopyData) => void
 }
 
 export function DayPage({
@@ -42,8 +46,12 @@ export function DayPage({
   onConvertCallPoint,
   onShiftTask,
   onAssignmentStateChange,
+  showNotDoneOnly,
+  onToggleNotDone,
+  onCopyAll,
 }: DayPageProps) {
   const date = fromISODate(workspace.selectedDate)
+  const notDoneCount = workspace.selectedTasks.filter((task) => task.status !== 'done').length
 
   return (
     <div className="page">
@@ -53,6 +61,26 @@ export function DayPage({
         description={<p>{format(date, 'd MMMM yyyy')} — notes and actions for this operating day.</p>}
         actions={
           <>
+            <Button
+              variant={showNotDoneOnly ? 'primary' : 'secondary'}
+              leadingIcon={CheckCircle2}
+              aria-pressed={showNotDoneOnly}
+              onClick={onToggleNotDone}
+            >
+              Not done ({notDoneCount})
+            </Button>
+            <Button
+              variant="secondary"
+              leadingIcon={Copy}
+              onClick={() => onCopyAll({
+                date: workspace.selectedDate,
+                notes: workspace.selectedNotes,
+                tasks: workspace.selectedTasks,
+                allTasks: workspace.data.tasks,
+              })}
+            >
+              Copy all
+            </Button>
             <Button variant="secondary" leadingIcon={PhoneCall} onClick={onAddCall}>Add call</Button>
             <Button leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
           </>
@@ -88,6 +116,7 @@ export function DayPage({
         onDeleteTask={workspace.deleteTask}
         onStatusChange={workspace.changeTaskStatus}
         onAssignmentStateChange={onAssignmentStateChange}
+        showNotDoneOnly={showNotDoneOnly}
       />
     </div>
   )
