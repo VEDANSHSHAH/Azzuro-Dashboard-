@@ -2,10 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { format } from 'date-fns'
 import {
   CalendarClock,
-  CheckSquare2,
-  FileText,
   GitBranchPlus,
-  PhoneCall,
   Plus,
   Trash2,
 } from 'lucide-react'
@@ -30,7 +27,7 @@ import {
   type TaskStatus,
 } from '../domain'
 
-type CreateKind = 'choose' | 'note' | 'task' | 'call'
+export type WorkItemKind = 'note' | 'task' | 'call'
 
 const CALL_STATUS_OPTIONS = [
   { value: 'scheduled', label: 'Scheduled' },
@@ -50,6 +47,7 @@ function createCallPoint(text = ''): CallPoint {
 
 interface WorkItemModalProps {
   open: boolean
+  kind: WorkItemKind
   date: ISODate
   onClose: () => void
   onCreateNote: (input: CreateNoteInput) => void
@@ -58,12 +56,12 @@ interface WorkItemModalProps {
 
 export function WorkItemModal({
   open,
+  kind,
   date,
   onClose,
   onCreateNote,
   onCreateTask,
 }: WorkItemModalProps) {
-  const [kind, setKind] = useState<CreateKind>('choose')
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [property, setProperty] = useState<Property>('all')
@@ -74,15 +72,14 @@ export function WorkItemModal({
 
   useEffect(() => {
     if (!open) return
-    setKind('choose')
     setTitle('')
     setContent('')
     setProperty('all')
-    setStatus('untouched')
+    setStatus(kind === 'call' ? 'scheduled' : 'untouched')
     setAssignedTo('')
     setCallOutcome('')
     setCallPoints([])
-  }, [open])
+  }, [kind, open])
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -115,13 +112,7 @@ export function WorkItemModal({
   }
 
   const titleByKind =
-    kind === 'choose'
-      ? 'Add to your day'
-      : kind === 'note'
-        ? 'New note'
-        : kind === 'call'
-          ? 'New call'
-          : 'New task'
+    kind === 'note' ? 'New note' : kind === 'call' ? 'New call' : 'New task'
   const description = `For ${format(fromISODate(date), 'EEEE, d MMMM yyyy')}`
 
   return (
@@ -130,9 +121,9 @@ export function WorkItemModal({
       onClose={onClose}
       title={titleByKind}
       description={description}
-      footer={kind === 'choose' ? undefined : (
+      footer={(
         <>
-          <Button variant="quiet" onClick={() => setKind('choose')}>Back</Button>
+          <Button variant="quiet" onClick={onClose}>Cancel</Button>
           <Button
             type="submit"
             form="work-item-form"
@@ -144,46 +135,7 @@ export function WorkItemModal({
         </>
       )}
     >
-      {kind === 'choose' ? (
-        <div className="creation-choices">
-          <button type="button" className="creation-choice" onClick={() => setKind('note')}>
-            <span className="creation-choice__icon"><FileText aria-hidden="true" /></span>
-            <span className="creation-choice__copy">
-              <strong>Write a note</strong>
-              <span>An open space for updates, handovers, and anything on your mind.</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="creation-choice"
-            onClick={() => {
-              setKind('task')
-              setStatus('untouched')
-            }}
-          >
-            <span className="creation-choice__icon"><CheckSquare2 aria-hidden="true" /></span>
-            <span className="creation-choice__copy">
-              <strong>Add a task</strong>
-              <span>Track an action by property, status, and scheduled day.</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="creation-choice creation-choice--call"
-            onClick={() => {
-              setKind('call')
-              setStatus('scheduled')
-            }}
-          >
-            <span className="creation-choice__icon"><PhoneCall aria-hidden="true" /></span>
-            <span className="creation-choice__copy">
-              <strong>Add a call</strong>
-              <span>Plan what to discuss, record what you heard, and turn outcomes into tasks.</span>
-            </span>
-          </button>
-        </div>
-      ) : (
-        <form id="work-item-form" className="form-grid" onSubmit={submit}>
+      <form id="work-item-form" className="form-grid" onSubmit={submit}>
           <TextField
             label={kind === 'note' ? 'Note name' : kind === 'call' ? 'Call name' : 'Task name'}
             placeholder={kind === 'note' ? 'e.g. Morning handover' : kind === 'call' ? 'Who or what is this call about?' : 'What needs to happen?'}
@@ -286,8 +238,7 @@ export function WorkItemModal({
               ) : null}
             </>
           ) : null}
-        </form>
-      )}
+      </form>
     </Modal>
   )
 }

@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { Plus } from 'lucide-react'
+import { PhoneCall, Plus } from 'lucide-react'
 import { Button, DateNavigator, PageHeader } from '../components'
 import { fromISODate, type CallPoint, type Property, type Task } from '../domain'
 import type { WorkspaceApi } from '../hooks'
@@ -11,7 +11,9 @@ interface DayPageProps {
   query: string
   propertyFilter: Property
   onPropertyFilterChange: (property: Property) => void
-  onAdd: () => void
+  onAddNote: () => void
+  onAddTask: () => void
+  onAddCall: () => void
   onOpenCalendar: () => void
   onEditTask: (task: Task) => void
   onCreateFollowUp: (task: Task) => void
@@ -24,7 +26,9 @@ export function DayPage({
   query,
   propertyFilter,
   onPropertyFilterChange,
-  onAdd,
+  onAddNote,
+  onAddTask,
+  onAddCall,
   onOpenCalendar,
   onEditTask,
   onCreateFollowUp,
@@ -39,7 +43,12 @@ export function DayPage({
         eyebrow={workspace.isToday ? 'Day-wise · Today' : 'Day-wise workspace'}
         title={format(date, 'EEEE')}
         description={<p>{format(date, 'd MMMM yyyy')} — notes and actions for this operating day.</p>}
-        actions={<Button leadingIcon={Plus} onClick={onAdd}>Add work</Button>}
+        actions={
+          <>
+            <Button variant="secondary" leadingIcon={PhoneCall} onClick={onAddCall}>Add call</Button>
+            <Button leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
+          </>
+        }
       />
       <div className="date-bar">
         <DateNavigator
@@ -59,7 +68,9 @@ export function DayPage({
         query={query}
         propertyFilter={propertyFilter}
         onPropertyFilterChange={onPropertyFilterChange}
-        onAdd={onAdd}
+        onAddNote={onAddNote}
+        onAddTask={onAddTask}
+        onAddCall={onAddCall}
         onUpdateNote={workspace.updateNote}
         onDeleteNote={workspace.deleteNote}
         onEditTask={onEditTask}

@@ -1,6 +1,6 @@
 [package]
 name = "mywork-azzuro"
-version = "0.6.0"
+version = "0.7.0"
 description = "A private cloud-synced operations workspace."
 authors = ["MYWORK AZZURO"]
 edition = "2021"

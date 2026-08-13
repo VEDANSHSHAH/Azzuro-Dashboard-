@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { ArrowRight, Plus } from 'lucide-react'
+import { ArrowRight, PhoneCall, Plus } from 'lucide-react'
 import { Button, PageHeader } from '../components'
 import { fromISODate, type CallPoint, type Property, type Task } from '../domain'
 import type { WorkspaceApi } from '../hooks'
@@ -11,7 +11,9 @@ interface TodayPageProps {
   query: string
   propertyFilter: Property
   onPropertyFilterChange: (property: Property) => void
-  onAdd: () => void
+  onAddNote: () => void
+  onAddTask: () => void
+  onAddCall: () => void
   onOpenDay: () => void
   onEditTask: (task: Task) => void
   onCreateFollowUp: (task: Task) => void
@@ -24,7 +26,9 @@ export function TodayPage({
   query,
   propertyFilter,
   onPropertyFilterChange,
-  onAdd,
+  onAddNote,
+  onAddTask,
+  onAddCall,
   onOpenDay,
   onEditTask,
   onCreateFollowUp,
@@ -44,7 +48,8 @@ export function TodayPage({
         actions={
           <>
             <Button variant="secondary" trailingIcon={ArrowRight} onClick={onOpenDay}>Open day</Button>
-            <Button leadingIcon={Plus} onClick={onAdd}>Add work</Button>
+            <Button variant="secondary" leadingIcon={PhoneCall} onClick={onAddCall}>Add call</Button>
+            <Button leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
           </>
         }
       />
@@ -56,7 +61,9 @@ export function TodayPage({
         query={query}
         propertyFilter={propertyFilter}
         onPropertyFilterChange={onPropertyFilterChange}
-        onAdd={onAdd}
+        onAddNote={onAddNote}
+        onAddTask={onAddTask}
+        onAddCall={onAddCall}
         onUpdateNote={workspace.updateNote}
         onDeleteNote={workspace.deleteNote}
         onEditTask={onEditTask}

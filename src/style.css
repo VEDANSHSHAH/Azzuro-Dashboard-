@@ -751,6 +751,18 @@ p {
   gap: 10px;
 }
 
+.section-card__actions,
+.empty-state__action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.empty-state__action {
+  justify-content: center;
+}
+
 .section-card__heading > svg {
   width: 17px;
   height: 17px;
@@ -2289,65 +2301,6 @@ p {
 
 .form-grid__full {
   grid-column: 1 / -1;
-}
-
-.creation-choices {
-  display: grid;
-  gap: 11px;
-}
-
-.creation-choice {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 17px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  color: var(--ink-700);
-  background: rgba(255, 253, 248, 0.8);
-  cursor: pointer;
-  text-align: left;
-  transition: transform 160ms var(--ease), border 160ms var(--ease), box-shadow 160ms var(--ease);
-}
-
-.creation-choice:hover {
-  transform: translateY(-1px);
-  border-color: rgba(116, 36, 58, 0.3);
-  box-shadow: var(--shadow-sm);
-}
-
-.creation-choice__icon {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 13px;
-  color: var(--wine-700);
-  background: var(--wine-50);
-}
-
-.creation-choice__icon svg {
-  width: 19px;
-  height: 19px;
-  stroke-width: 1.7;
-}
-
-.creation-choice__copy {
-  display: grid;
-  gap: 4px;
-}
-
-.creation-choice__copy strong {
-  color: var(--wine-900);
-  font-size: 13px;
-}
-
-.creation-choice__copy span {
-  color: var(--ink-500);
-  font-size: 11px;
-  line-height: 1.5;
 }
 
 .field {

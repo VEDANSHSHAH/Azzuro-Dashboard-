@@ -19,7 +19,12 @@ import {
   type ToastMessage,
 } from './components'
 import { CalendarModal } from './features/CalendarModal'
-import { ShiftTaskModal, TaskEditorModal, WorkItemModal } from './features/work-modals'
+import {
+  ShiftTaskModal,
+  TaskEditorModal,
+  WorkItemModal,
+  type WorkItemKind,
+} from './features/work-modals'
 import { FollowUpTaskModal } from './features/FollowUpTaskModal'
 import { CallEditorModal } from './features/CallEditorModal'
 import { useWorkspace } from './hooks'
@@ -57,7 +62,7 @@ function App() {
   const [activePage, setActivePage] = useState<PageId>('today')
   const [query, setQuery] = useState('')
   const [propertyFilter, setPropertyFilter] = useState<Property>('all')
-  const [workModalOpen, setWorkModalOpen] = useState(false)
+  const [workItemKind, setWorkItemKind] = useState<WorkItemKind | null>(null)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [editingCall, setEditingCall] = useState<Task | null>(null)
@@ -101,6 +106,10 @@ function App() {
     workspace.goToToday()
     setActivePage('day')
     setQuery('')
+  }
+
+  function openWorkItem(kind: WorkItemKind) {
+    setWorkItemKind(kind)
   }
 
   function handleEditTask(task: Task) {
@@ -203,7 +212,9 @@ function App() {
               query={query}
               propertyFilter={propertyFilter}
               onPropertyFilterChange={setPropertyFilter}
-              onAdd={() => setWorkModalOpen(true)}
+              onAddNote={() => openWorkItem('note')}
+              onAddTask={() => openWorkItem('task')}
+              onAddCall={() => openWorkItem('call')}
               onOpenDay={openTodayDay}
               onEditTask={handleEditTask}
               onCreateFollowUp={handleCreateFollowUp}
@@ -217,7 +228,9 @@ function App() {
               query={query}
               propertyFilter={propertyFilter}
               onPropertyFilterChange={setPropertyFilter}
-              onAdd={() => setWorkModalOpen(true)}
+              onAddNote={() => openWorkItem('note')}
+              onAddTask={() => openWorkItem('task')}
+              onAddCall={() => openWorkItem('call')}
               onOpenCalendar={() => setCalendarOpen(true)}
               onEditTask={handleEditTask}
               onCreateFollowUp={handleCreateFollowUp}
@@ -233,9 +246,10 @@ function App() {
       </AnimatePresence>
 
       <WorkItemModal
-        open={workModalOpen}
+        open={workItemKind !== null}
+        kind={workItemKind ?? 'task'}
         date={workModalDate}
-        onClose={() => setWorkModalOpen(false)}
+        onClose={() => setWorkItemKind(null)}
         onCreateNote={(input) => {
           workspace.addNote(input)
           notify('Note added', 'It is already being autosaved.')

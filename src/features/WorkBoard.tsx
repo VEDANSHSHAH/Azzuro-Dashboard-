@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'motion/react'
-import { CheckCircle2, CircleDot, Clock3, FileText, ListChecks, Plus } from 'lucide-react'
+import { CheckCircle2, CircleDot, Clock3, FileText, ListChecks, PhoneCall, Plus } from 'lucide-react'
 import { Button, EmptyState } from '../components'
 import {
   PROPERTY_OPTIONS,
@@ -18,7 +18,9 @@ interface WorkBoardProps {
   query: string
   propertyFilter: Property
   onPropertyFilterChange: (property: Property) => void
-  onAdd: () => void
+  onAddNote: () => void
+  onAddTask: () => void
+  onAddCall: () => void
   onUpdateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'pinned'>>) => void
   onDeleteNote: (id: string) => void
   onEditTask: (task: Task) => void
@@ -37,7 +39,9 @@ export function WorkBoard({
   query,
   propertyFilter,
   onPropertyFilterChange,
-  onAdd,
+  onAddNote,
+  onAddTask,
+  onAddCall,
   onUpdateNote,
   onDeleteNote,
   onEditTask,
@@ -105,6 +109,10 @@ export function WorkBoard({
               <h2 className="section-card__title">Tasks &amp; calls</h2>
               <span className="section-card__count">{visibleTasks.length}</span>
             </div>
+            <div className="section-card__actions">
+              <Button size="sm" variant="secondary" leadingIcon={PhoneCall} onClick={onAddCall}>Add call</Button>
+              <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
+            </div>
           </div>
           <div className="section-card__body">
             {visibleTasks.length ? (
@@ -134,7 +142,14 @@ export function WorkBoard({
                 icon={ListChecks}
                 title={query || propertyFilter !== 'all' ? 'No matching tasks' : 'A clear runway'}
                 description={query || propertyFilter !== 'all' ? 'Try another search or property filter.' : 'Add the first task or call for this day when something comes up.'}
-                action={!query && propertyFilter === 'all' ? <Button size="sm" leadingIcon={Plus} onClick={onAdd}>Add work</Button> : undefined}
+                action={
+                  !query && propertyFilter === 'all' ? (
+                    <>
+                      <Button size="sm" variant="secondary" leadingIcon={PhoneCall} onClick={onAddCall}>Add call</Button>
+                      <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
+                    </>
+                  ) : undefined
+                }
               />
             )}
           </div>
@@ -146,6 +161,9 @@ export function WorkBoard({
               <FileText aria-hidden="true" />
               <h2 className="section-card__title">Notes</h2>
               <span className="section-card__count">{visibleNotes.length}</span>
+            </div>
+            <div className="section-card__actions">
+              <Button size="sm" leadingIcon={Plus} onClick={onAddNote}>Add note</Button>
             </div>
           </div>
           <div className="section-card__body">
@@ -168,7 +186,7 @@ export function WorkBoard({
                 icon={FileText}
                 title={query ? 'No matching notes' : 'No notes yet'}
                 description={query ? 'Try a different search phrase.' : 'Capture handovers, calls, and important context here.'}
-                action={!query ? <Button size="sm" leadingIcon={Plus} onClick={onAdd}>Add work</Button> : undefined}
+                action={!query ? <Button size="sm" leadingIcon={Plus} onClick={onAddNote}>Add note</Button> : undefined}
               />
             )}
           </div>
