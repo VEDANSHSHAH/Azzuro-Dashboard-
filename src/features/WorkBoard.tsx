@@ -7,6 +7,7 @@ import {
   type Note,
   type Property,
   type Task,
+  type TaskAssignmentState,
   type TaskStatus,
 } from '../domain'
 import { NoteCard, TaskCard } from './work-items'
@@ -29,6 +30,7 @@ interface WorkBoardProps {
   onShiftTask: (task: Task) => void
   onDeleteTask: (id: string) => void
   onStatusChange: (id: string, status: TaskStatus) => void
+  onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
   showTaskDates?: boolean
 }
 
@@ -50,6 +52,7 @@ export function WorkBoard({
   onShiftTask,
   onDeleteTask,
   onStatusChange,
+  onAssignmentStateChange,
   showTaskDates = false,
 }: WorkBoardProps) {
   const normalizedQuery = query.trim().toLocaleLowerCase()
@@ -133,6 +136,9 @@ export function WorkBoard({
                       onShift={() => onShiftTask(task)}
                       onDelete={() => onDeleteTask(task.id)}
                       onStatusChange={(status) => onStatusChange(task.id, status)}
+                      onAssignmentStateChange={(state) =>
+                        onAssignmentStateChange(task.id, state)
+                      }
                     />
                   ))}
                 </AnimatePresence>

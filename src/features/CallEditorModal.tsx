@@ -15,9 +15,11 @@ import {
   type CallPoint,
   type Property,
   type Task,
+  type TaskAssignmentState,
   type TaskStatus,
   type UpdateTaskInput,
 } from '../domain'
+import { AssignmentHandoffFields } from './AssignmentHandoffFields'
 
 export interface CallEditorModalProps {
   call: Task | null
@@ -74,6 +76,8 @@ export function CallEditorModal({
     'scheduled',
   )
   const [assignedTo, setAssignedTo] = useState('')
+  const [assignmentState, setAssignmentState] =
+    useState<TaskAssignmentState>('needs-giving')
   const [callOutcome, setCallOutcome] = useState('')
   const [callPoints, setCallPoints] = useState<DraftCallPoint[]>([])
   const [titleError, setTitleError] = useState<string>()
@@ -86,6 +90,7 @@ export function CallEditorModal({
     setProperty(call.property)
     setStatus(call.status === 'done' ? 'done' : 'scheduled')
     setAssignedTo(call.assignedTo)
+    setAssignmentState(call.assignmentState ?? 'needs-giving')
     setCallOutcome(call.callOutcome)
     setCallPoints(
       call.callPoints.length ? call.callPoints.map(toDraftPoint) : [emptyPoint()],
@@ -130,6 +135,7 @@ export function CallEditorModal({
       property,
       status,
       assignedTo: assignedTo.trim(),
+      assignmentState,
       callOutcome: callOutcome.trim(),
       callPoints: savedPoints,
     })
@@ -200,12 +206,11 @@ export function CallEditorModal({
               setStatus(event.target.value as Extract<TaskStatus, 'scheduled' | 'done'>)
             }
           />
-          <TextField
-            label="Assigned to"
-            value={assignedTo}
-            placeholder="Optional"
-            fieldClassName="form-grid__full"
-            onChange={(event) => setAssignedTo(event.target.value)}
+          <AssignmentHandoffFields
+            assignedTo={assignedTo}
+            assignmentState={assignmentState}
+            onAssignedToChange={setAssignedTo}
+            onAssignmentStateChange={setAssignmentState}
           />
           <TextareaField
             label="What I heard"

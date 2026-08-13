@@ -22,6 +22,7 @@ import {
   type ISODate,
   type Property,
   type Task,
+  type TaskAssignmentState,
   type TaskStatus,
 } from '../domain'
 import { TaskCard } from './work-items'
@@ -36,6 +37,7 @@ interface CalendarModalProps {
   onShiftTask: (task: Task) => void
   onDeleteTask: (id: string) => void
   onStatusChange: (id: string, status: TaskStatus) => void
+  onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
 }
 
 export function CalendarModal({
@@ -48,6 +50,7 @@ export function CalendarModal({
   onShiftTask,
   onDeleteTask,
   onStatusChange,
+  onAssignmentStateChange,
 }: CalendarModalProps) {
   const [viewMonth, setViewMonth] = useState(() => fromISODate(selectedDate))
   const [focusDate, setFocusDate] = useState<ISODate>(selectedDate)
@@ -196,6 +199,9 @@ export function CalendarModal({
                 onShift={() => onShiftTask(task)}
                 onDelete={() => onDeleteTask(task.id)}
                 onStatusChange={(nextStatus) => onStatusChange(task.id, nextStatus)}
+                onAssignmentStateChange={(state) =>
+                  onAssignmentStateChange(task.id, state)
+                }
               />
             )) : <p className="calendar-agenda__empty">Nothing planned for this day.</p>}
           </div>

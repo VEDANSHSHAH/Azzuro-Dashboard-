@@ -5,6 +5,7 @@ import {
   normalizeTaskStatusForKind,
   repairCallPointTaskReferences,
 } from '../domain/calls'
+import { normalizeAssignmentState } from '../domain/assignments'
 import { repairTaskParentLinks } from '../domain/taskChains'
 import {
   CLEANING_STATUSES,
@@ -114,6 +115,7 @@ function normalizeTask(value: unknown, fallbackTimestamp: string): Task | null {
   const kind = normalizeTaskKind(value.kind)
   const status = normalizeTaskStatusForKind(kind, taskStatus(value.status))
   const id = text(value.id) || createId('task')
+  const assignedTo = text(value.assignedTo).trim()
   return {
     id,
     kind,
@@ -126,7 +128,8 @@ function normalizeTask(value: unknown, fallbackTimestamp: string): Task | null {
     callPoints: normalizeCallPoints(value.callPoints, id),
     property: property(value.property),
     status,
-    assignedTo: text(value.assignedTo),
+    assignedTo,
+    assignmentState: normalizeAssignmentState(assignedTo, value.assignmentState),
     parentTaskId: text(value.parentTaskId) || null,
     createdAt: timestamp(value.createdAt, fallbackTimestamp),
     updatedAt: timestamp(value.updatedAt, fallbackTimestamp),

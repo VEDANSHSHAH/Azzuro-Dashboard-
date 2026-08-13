@@ -20,6 +20,7 @@
   --ink-500: #766a6d;
   --ink-400: #998d8f;
   --brass-600: #9a6b36;
+  --brass-700: #795026;
   --brass-500: #b38149;
   --brass-100: #f3e5d0;
   --green-700: #3d6b52;
@@ -1150,6 +1151,117 @@ p {
   width: 11px;
   height: 11px;
   flex: 0 0 auto;
+}
+
+.assignment-badge {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border-radius: 99px;
+  font-size: 9.5px;
+  font-weight: 800;
+}
+
+.assignment-badge svg {
+  width: 11px;
+  height: 11px;
+}
+
+.assignment-badge--needs-giving {
+  color: var(--wine-700);
+  background: var(--wine-100);
+}
+
+.assignment-badge--given {
+  color: var(--green-700);
+  background: var(--green-100);
+}
+
+.assignment-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+
+.assignment-step--needs-giving {
+  border-color: rgba(116, 36, 58, 0.17);
+  background: var(--wine-50);
+}
+
+.assignment-step--given {
+  border-color: rgba(61, 107, 82, 0.18);
+  background: rgba(225, 238, 229, 0.58);
+}
+
+.assignment-step__icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+}
+
+.assignment-step--needs-giving .assignment-step__icon {
+  color: var(--wine-700);
+  background: var(--wine-100);
+}
+
+.assignment-step--given .assignment-step__icon {
+  color: var(--green-700);
+  background: var(--green-100);
+}
+
+.assignment-step__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.assignment-step__copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.assignment-step__copy small {
+  color: var(--ink-500);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.assignment-step__copy strong {
+  overflow: hidden;
+  color: var(--ink-700);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignment-step__action {
+  min-height: 27px;
+  padding: 0 9px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.56);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.assignment-step--needs-giving .assignment-step__action {
+  color: var(--wine-700);
+}
+
+.assignment-step--given .assignment-step__action {
+  color: var(--green-700);
 }
 
 .task-card--call {
@@ -2320,6 +2432,25 @@ p {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 10px;
+}
+
+.assignment-handoff-form {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid rgba(116, 36, 58, 0.14);
+  border-radius: 12px;
+  background: var(--wine-50);
+}
+
+.assignment-handoff-form__question {
+  color: var(--ink-600);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.assignment-handoff-form__question strong {
+  color: var(--wine-800);
 }
 
 .scheduled-date-field > .button {

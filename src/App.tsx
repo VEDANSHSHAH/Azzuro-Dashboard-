@@ -28,7 +28,7 @@ import {
 import { FollowUpTaskModal } from './features/FollowUpTaskModal'
 import { CallEditorModal } from './features/CallEditorModal'
 import { useWorkspace } from './hooks'
-import type { CallPoint, Property, Task } from './domain'
+import type { CallPoint, Property, Task, TaskAssignmentState } from './domain'
 import { CleaningPage } from './pages/CleaningPage'
 import { DayPage } from './pages/DayPage'
 import { LinksPage } from './pages/LinksPage'
@@ -143,6 +143,16 @@ function App() {
     setShiftingTask(task)
   }
 
+  function handleAssignmentStateChange(
+    id: string,
+    state: TaskAssignmentState,
+  ) {
+    workspace.updateTask(id, { assignmentState: state })
+    notify(
+      state === 'given' ? 'Handoff marked given' : 'Handoff needs giving',
+    )
+  }
+
   const workModalDate = activePage === 'today' ? workspace.today : workspace.selectedDate
 
   if (workspace.accessState !== 'ready') {
@@ -220,6 +230,7 @@ function App() {
               onCreateFollowUp={handleCreateFollowUp}
               onConvertCallPoint={handleConvertCallPoint}
               onShiftTask={handleShiftTask}
+              onAssignmentStateChange={handleAssignmentStateChange}
             />
           ) : null}
           {activePage === 'day' ? (
@@ -236,6 +247,7 @@ function App() {
               onCreateFollowUp={handleCreateFollowUp}
               onConvertCallPoint={handleConvertCallPoint}
               onShiftTask={handleShiftTask}
+              onAssignmentStateChange={handleAssignmentStateChange}
             />
           ) : null}
           {activePage === 'reminders' ? <ThingsToRememberPage workspace={workspace} query={query} /> : null}
@@ -335,6 +347,7 @@ function App() {
         onShiftTask={handleShiftTask}
         onDeleteTask={workspace.deleteTask}
         onStatusChange={workspace.changeTaskStatus}
+        onAssignmentStateChange={handleAssignmentStateChange}
       />
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </AppShell>

@@ -1,7 +1,13 @@
 import { format } from 'date-fns'
 import { PhoneCall, Plus } from 'lucide-react'
 import { Button, DateNavigator, PageHeader } from '../components'
-import { fromISODate, type CallPoint, type Property, type Task } from '../domain'
+import {
+  fromISODate,
+  type CallPoint,
+  type Property,
+  type Task,
+  type TaskAssignmentState,
+} from '../domain'
 import type { WorkspaceApi } from '../hooks'
 import { WorkBoard } from '../features/WorkBoard'
 import { ReminderBanner } from '../features/ReminderBanner'
@@ -19,6 +25,7 @@ interface DayPageProps {
   onCreateFollowUp: (task: Task) => void
   onConvertCallPoint: (call: Task, point: CallPoint) => void
   onShiftTask: (task: Task) => void
+  onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
 }
 
 export function DayPage({
@@ -34,6 +41,7 @@ export function DayPage({
   onCreateFollowUp,
   onConvertCallPoint,
   onShiftTask,
+  onAssignmentStateChange,
 }: DayPageProps) {
   const date = fromISODate(workspace.selectedDate)
 
@@ -79,6 +87,7 @@ export function DayPage({
         onShiftTask={onShiftTask}
         onDeleteTask={workspace.deleteTask}
         onStatusChange={workspace.changeTaskStatus}
+        onAssignmentStateChange={onAssignmentStateChange}
       />
     </div>
   )

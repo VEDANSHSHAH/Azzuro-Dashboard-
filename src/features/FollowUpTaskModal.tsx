@@ -16,8 +16,10 @@ import {
   type ISODate,
   type Property,
   type Task,
+  type TaskAssignmentState,
   type TaskStatus,
 } from '../domain'
+import { AssignmentHandoffFields } from './AssignmentHandoffFields'
 
 export interface FollowUpTaskModalProps {
   parentTask: Task | null
@@ -47,6 +49,8 @@ export function FollowUpTaskModal({
   const [property, setProperty] = useState<Property>('all')
   const [status, setStatus] = useState<TaskStatus>('scheduled')
   const [assignedTo, setAssignedTo] = useState('')
+  const [assignmentState, setAssignmentState] =
+    useState<TaskAssignmentState>('needs-giving')
   const [titleError, setTitleError] = useState<string>()
   const [dateError, setDateError] = useState<string>()
 
@@ -58,6 +62,7 @@ export function FollowUpTaskModal({
     setProperty(parentTask.property)
     setStatus('scheduled')
     setAssignedTo('')
+    setAssignmentState('needs-giving')
     setTitleError(undefined)
     setDateError(undefined)
   }, [initialDescription, initialTitle, parentTask])
@@ -80,6 +85,7 @@ export function FollowUpTaskModal({
       property,
       status,
       assignedTo: assignedTo.trim(),
+      assignmentState,
       findings: '',
       parentTaskId: parentTask.id,
     })
@@ -180,11 +186,11 @@ export function FollowUpTaskModal({
               options={TASK_STATUS_OPTIONS}
               onChange={(event) => setStatus(event.target.value as TaskStatus)}
             />
-            <TextField
-              label="Assigned to"
-              value={assignedTo}
-              placeholder="e.g. Cleaner, John, Maintenance team"
-              onChange={(event) => setAssignedTo(event.target.value)}
+            <AssignmentHandoffFields
+              assignedTo={assignedTo}
+              assignmentState={assignmentState}
+              onAssignedToChange={setAssignedTo}
+              onAssignmentStateChange={setAssignmentState}
             />
             <div className="follow-up-form__inheritance form-grid__full">
               <CalendarClock aria-hidden="true" />

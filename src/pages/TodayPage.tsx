@@ -1,7 +1,13 @@
 import { format } from 'date-fns'
 import { ArrowRight, PhoneCall, Plus } from 'lucide-react'
 import { Button, PageHeader } from '../components'
-import { fromISODate, type CallPoint, type Property, type Task } from '../domain'
+import {
+  fromISODate,
+  type CallPoint,
+  type Property,
+  type Task,
+  type TaskAssignmentState,
+} from '../domain'
 import type { WorkspaceApi } from '../hooks'
 import { WorkBoard } from '../features/WorkBoard'
 import { ReminderBanner } from '../features/ReminderBanner'
@@ -19,6 +25,7 @@ interface TodayPageProps {
   onCreateFollowUp: (task: Task) => void
   onConvertCallPoint: (call: Task, point: CallPoint) => void
   onShiftTask: (task: Task) => void
+  onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
 }
 
 export function TodayPage({
@@ -34,6 +41,7 @@ export function TodayPage({
   onCreateFollowUp,
   onConvertCallPoint,
   onShiftTask,
+  onAssignmentStateChange,
 }: TodayPageProps) {
   const date = fromISODate(workspace.today)
 
@@ -72,6 +80,7 @@ export function TodayPage({
         onShiftTask={onShiftTask}
         onDeleteTask={workspace.deleteTask}
         onStatusChange={workspace.changeTaskStatus}
+        onAssignmentStateChange={onAssignmentStateChange}
       />
     </div>
   )

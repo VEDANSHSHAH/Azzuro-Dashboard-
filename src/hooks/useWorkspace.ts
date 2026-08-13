@@ -7,6 +7,7 @@ import {
   normalizeTaskStatusForKind,
   repairCallPointsForTask,
 } from '../domain/calls'
+import { normalizeAssignmentState } from '../domain/assignments'
 import { isReminderForDate } from '../domain/reminders'
 import { normalizeTaskParentId } from '../domain/taskChains'
 import { isTaskForDate } from '../domain/taskDates'
@@ -487,6 +488,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         input.status ?? 'untouched',
       )
       const id = createId('task')
+      const assignedTo = input.assignedTo?.trim() ?? ''
       const callPoints = repairCallPointsForTask(
         normalizeCallPoints(input.callPoints, id),
         id,
@@ -504,7 +506,11 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         callPoints,
         property: input.property ?? 'all',
         status,
-        assignedTo: input.assignedTo ?? '',
+        assignedTo,
+        assignmentState: normalizeAssignmentState(
+          assignedTo,
+          input.assignmentState,
+        ),
         parentTaskId: normalizeTaskParentId(
           input.parentTaskId,
           id,
@@ -565,6 +571,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         'task',
         input.status ?? 'scheduled',
       )
+      const assignedTo = input.assignedTo?.trim() ?? ''
       const convertedTask: Task = {
         id,
         kind: 'task',
@@ -577,7 +584,11 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         callPoints: [],
         property: input.property ?? call.property,
         status,
-        assignedTo: input.assignedTo ?? '',
+        assignedTo,
+        assignmentState: normalizeAssignmentState(
+          assignedTo,
+          input.assignmentState,
+        ),
         parentTaskId: normalizeTaskParentId(callTaskId, id, currentTasks),
         createdAt,
         updatedAt: createdAt,
@@ -630,6 +641,10 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
                   id,
                   current.tasks,
                 )
+          const nextAssignedTo =
+            typeof patch.assignedTo === 'string'
+              ? patch.assignedTo.trim()
+              : task.assignedTo
           return {
             ...task,
             ...patch,
@@ -643,10 +658,13 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
                 ? task.scheduledFor
                 : nullableDate(patch.scheduledFor),
             status: nextStatus,
-            assignedTo:
-              typeof patch.assignedTo === 'string'
-                ? patch.assignedTo
-                : task.assignedTo,
+            assignedTo: nextAssignedTo,
+            assignmentState: normalizeAssignmentState(
+              nextAssignedTo,
+              patch.assignmentState === undefined
+                ? task.assignmentState
+                : patch.assignmentState,
+            ),
             findings:
               typeof patch.findings === 'string' ? patch.findings : task.findings,
             callOutcome:

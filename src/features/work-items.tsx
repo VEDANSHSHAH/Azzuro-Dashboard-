@@ -11,6 +11,7 @@ import {
   MessageSquareText,
   PhoneCall,
   Pin,
+  Send,
   Trash2,
   UserRound,
 } from 'lucide-react'
@@ -27,6 +28,7 @@ import {
   type Note,
   type CallPoint,
   type Task,
+  type TaskAssignmentState,
   type TaskStatus,
 } from '../domain'
 
@@ -101,6 +103,7 @@ export function NoteCard({ note, onChange, onDelete, compact = false }: NoteCard
 interface TaskCardProps {
   task: Task
   onStatusChange: (status: TaskStatus) => void
+  onAssignmentStateChange?: (state: TaskAssignmentState) => void
   onEdit: () => void
   onCreateFollowUp?: () => void
   onOpenLinkedTask?: (task: Task) => void
@@ -117,6 +120,7 @@ interface TaskCardProps {
 export function TaskCard({
   task,
   onStatusChange,
+  onAssignmentStateChange,
   onEdit,
   onCreateFollowUp,
   onOpenLinkedTask,
@@ -132,6 +136,7 @@ export function TaskCard({
   const reduceMotion = useReducedMotion()
   const isDone = task.status === 'done'
   const isCall = task.kind === 'call'
+  const handoffIsGiven = task.assignmentState === 'given'
   const statusOptions = isCall
     ? TASK_STATUS_OPTIONS.filter((option) => option.value !== 'untouched')
     : TASK_STATUS_OPTIONS
@@ -271,6 +276,39 @@ export function TaskCard({
           </div>
         </div>
       ) : null}
+      {!compact && task.assignedTo ? (
+        <section
+          className={`assignment-step${
+            handoffIsGiven ? ' assignment-step--given' : ' assignment-step--needs-giving'
+          }`}
+          aria-label={`Assignment handoff for ${task.assignedTo}`}
+        >
+          <span className="assignment-step__icon" aria-hidden="true">
+            {handoffIsGiven ? <Check /> : <Send />}
+          </span>
+          <span className="assignment-step__copy">
+            <small>Assignment handoff</small>
+            <strong>
+              {handoffIsGiven
+                ? `Given to ${task.assignedTo}`
+                : `Give to ${task.assignedTo}`}
+            </strong>
+          </span>
+          {onAssignmentStateChange ? (
+            <button
+              type="button"
+              className="assignment-step__action"
+              onClick={() =>
+                onAssignmentStateChange(
+                  handoffIsGiven ? 'needs-giving' : 'given',
+                )
+              }
+            >
+              {handoffIsGiven ? 'Mark needs giving' : 'Mark given'}
+            </button>
+          ) : null}
+        </section>
+      ) : null}
       {parentTask || followUpTasks.length ? (
         <div className="task-card__trail" aria-label="Linked task trail">
           {parentTask ? (
@@ -321,6 +359,18 @@ export function TaskCard({
           ) : null}
           {task.assignedTo ? (
             <span className="assignee-badge"><UserRound aria-hidden="true" />{task.assignedTo}</span>
+          ) : null}
+          {task.assignedTo ? (
+            <span
+              className={`assignment-badge${
+                handoffIsGiven
+                  ? ' assignment-badge--given'
+                  : ' assignment-badge--needs-giving'
+              }`}
+            >
+              {handoffIsGiven ? <Check aria-hidden="true" /> : <Send aria-hidden="true" />}
+              {handoffIsGiven ? 'Given' : 'Need to give'}
+            </span>
           ) : null}
           {task.scheduledFor ? (
             <span className="task-card__scheduled-date">

@@ -12,6 +12,9 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
 - **Scheduled for** keeps a task on the day it was added while also showing it
   on an optional future scheduled date; remove that scheduled date anytime.
 - **Assigned to** keeps task ownership visible on every task card.
+- **Assignment handoff** adds a nested step for each person: mark whether you
+  still need to give them the task or it has already been given, with a clear
+  amber/green highlight on the card.
 - **Calls** can be scheduled with talking points, assigned, completed with a
   written outcome, and reviewed alongside the day's other work.
 - **Call outcome points** can become linked follow-up tasks in one click, so an

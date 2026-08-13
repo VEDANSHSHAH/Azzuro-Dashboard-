@@ -33,6 +33,9 @@ export const TASK_STATUS_OPTIONS: ReadonlyArray<{
   { value: 'done', label: 'Done' },
 ]
 
+export const TASK_ASSIGNMENT_STATES = ['needs-giving', 'given'] as const
+export type TaskAssignmentState = (typeof TASK_ASSIGNMENT_STATES)[number]
+
 export const CLEANING_STATUSES = ['scheduled', 'completed', 'overdue'] as const
 export type CleaningStatus = (typeof CLEANING_STATUSES)[number]
 
@@ -96,6 +99,7 @@ export interface Task {
   property: Property
   status: TaskStatus
   assignedTo: string
+  assignmentState: TaskAssignmentState | null
   parentTaskId: string | null
   createdAt: ISODateTime
   updatedAt: ISODateTime
@@ -182,6 +186,7 @@ export interface CreateTaskInput {
   property?: Property
   status?: TaskStatus
   assignedTo?: string
+  assignmentState?: TaskAssignmentState | null
   parentTaskId?: string | null
 }
 
@@ -199,6 +204,7 @@ export type UpdateTaskInput = Partial<
     | 'property'
     | 'status'
     | 'assignedTo'
+    | 'assignmentState'
     | 'parentTaskId'
   >
 >

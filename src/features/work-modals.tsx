@@ -24,8 +24,10 @@ import {
   type ISODate,
   type Property,
   type Task,
+  type TaskAssignmentState,
   type TaskStatus,
 } from '../domain'
+import { AssignmentHandoffFields } from './AssignmentHandoffFields'
 
 export type WorkItemKind = 'note' | 'task' | 'call'
 
@@ -68,6 +70,8 @@ export function WorkItemModal({
   const [status, setStatus] = useState<TaskStatus>('untouched')
   const [scheduledFor, setScheduledFor] = useState<ISODate>('')
   const [assignedTo, setAssignedTo] = useState('')
+  const [assignmentState, setAssignmentState] =
+    useState<TaskAssignmentState>('needs-giving')
   const [callOutcome, setCallOutcome] = useState('')
   const [callPoints, setCallPoints] = useState<CallPoint[]>([])
 
@@ -79,6 +83,7 @@ export function WorkItemModal({
     setStatus(kind === 'call' ? 'scheduled' : 'untouched')
     setScheduledFor('')
     setAssignedTo('')
+    setAssignmentState('needs-giving')
     setCallOutcome('')
     setCallPoints([])
   }, [kind, open])
@@ -99,6 +104,7 @@ export function WorkItemModal({
         property,
         status,
         assignedTo: assignedTo.trim(),
+        assignmentState,
       })
       onClose()
     }
@@ -113,6 +119,7 @@ export function WorkItemModal({
         property,
         status: status === 'done' ? 'done' : 'scheduled',
         assignedTo: assignedTo.trim(),
+        assignmentState,
         callOutcome: callOutcome.trim(),
         callPoints: callPoints
           .map((point) => ({ ...point, text: point.text.trim() }))
@@ -186,12 +193,11 @@ export function WorkItemModal({
                 fieldClassName="form-grid__full"
                 onChange={(event) => setScheduledFor(event.target.value)}
               />
-              <TextField
-                label="Assigned to"
-                placeholder="e.g. Cleaner, John, Maintenance team"
-                value={assignedTo}
-                fieldClassName="form-grid__full"
-                onChange={(event) => setAssignedTo(event.target.value)}
+              <AssignmentHandoffFields
+                assignedTo={assignedTo}
+                assignmentState={assignmentState}
+                onAssignedToChange={setAssignedTo}
+                onAssignmentStateChange={setAssignmentState}
               />
               {kind === 'call' && status === 'done' ? (
                 <>
@@ -272,6 +278,7 @@ type TaskEditorPatch = Partial<
     | 'status'
     | 'scheduledFor'
     | 'assignedTo'
+    | 'assignmentState'
   >
 >
 
@@ -295,6 +302,8 @@ export function TaskEditorModal({
   const [status, setStatus] = useState<TaskStatus>('untouched')
   const [scheduledFor, setScheduledFor] = useState<ISODate>('')
   const [assignedTo, setAssignedTo] = useState('')
+  const [assignmentState, setAssignmentState] =
+    useState<TaskAssignmentState>('needs-giving')
 
   useEffect(() => {
     if (!task) return
@@ -305,6 +314,7 @@ export function TaskEditorModal({
     setStatus(task.status)
     setScheduledFor(task.scheduledFor ?? '')
     setAssignedTo(task.assignedTo)
+    setAssignmentState(task.assignmentState ?? 'needs-giving')
   }, [task])
 
   function createPatch(): TaskEditorPatch {
@@ -316,6 +326,7 @@ export function TaskEditorModal({
       status,
       scheduledFor: scheduledFor || null,
       assignedTo: assignedTo.trim(),
+      assignmentState,
     }
   }
 
@@ -401,12 +412,11 @@ export function TaskEditorModal({
             </Button>
           ) : null}
         </div>
-        <TextField
-          label="Assigned to"
-          placeholder="e.g. Cleaner, John, Maintenance team"
-          value={assignedTo}
-          fieldClassName="form-grid__full"
-          onChange={(event) => setAssignedTo(event.target.value)}
+        <AssignmentHandoffFields
+          assignedTo={assignedTo}
+          assignmentState={assignmentState}
+          onAssignedToChange={setAssignedTo}
+          onAssignmentStateChange={setAssignmentState}
         />
         <TextareaField
           label="Findings / outcome"
