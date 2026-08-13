@@ -15,6 +15,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button, IconButton, Modal } from '../components'
 import {
   fromISODate,
+  getTaskDates,
   PROPERTY_OPTIONS,
   TASK_STATUS_OPTIONS,
   toISODate,
@@ -77,8 +78,10 @@ export function CalendarModal({
   const tasksByDate = useMemo(() => {
     const result = new Map<ISODate, Task[]>()
     filteredTasks.forEach((task) => {
-      const existing = result.get(task.date) ?? []
-      result.set(task.date, [...existing, task])
+      getTaskDates(task).forEach((date) => {
+        const existing = result.get(date) ?? []
+        result.set(date, [...existing, task])
+      })
     })
     return result
   }, [filteredTasks])
@@ -90,7 +93,7 @@ export function CalendarModal({
       open={open}
       onClose={onClose}
       title="Work calendar"
-      description="See every scheduled item at a glance, then open a day or move a task."
+      description="See tasks on both their added and scheduled dates, then open a day or set a schedule."
       className="dialog--calendar"
     >
       <div className="calendar-filters">

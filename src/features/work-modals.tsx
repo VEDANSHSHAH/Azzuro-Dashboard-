@@ -66,6 +66,7 @@ export function WorkItemModal({
   const [content, setContent] = useState('')
   const [property, setProperty] = useState<Property>('all')
   const [status, setStatus] = useState<TaskStatus>('untouched')
+  const [scheduledFor, setScheduledFor] = useState<ISODate>('')
   const [assignedTo, setAssignedTo] = useState('')
   const [callOutcome, setCallOutcome] = useState('')
   const [callPoints, setCallPoints] = useState<CallPoint[]>([])
@@ -76,6 +77,7 @@ export function WorkItemModal({
     setContent('')
     setProperty('all')
     setStatus(kind === 'call' ? 'scheduled' : 'untouched')
+    setScheduledFor('')
     setAssignedTo('')
     setCallOutcome('')
     setCallPoints([])
@@ -89,7 +91,15 @@ export function WorkItemModal({
     }
     if (kind === 'task') {
       if (!title.trim()) return
-      onCreateTask({ date, title: title.trim(), description: content, property, status, assignedTo: assignedTo.trim() })
+      onCreateTask({
+        date,
+        scheduledFor: scheduledFor || null,
+        title: title.trim(),
+        description: content,
+        property,
+        status,
+        assignedTo: assignedTo.trim(),
+      })
       onClose()
     }
     if (kind === 'call') {
@@ -97,6 +107,7 @@ export function WorkItemModal({
       onCreateTask({
         kind: 'call',
         date,
+        scheduledFor: scheduledFor || null,
         title: title.trim(),
         description: content.trim(),
         property,
@@ -166,6 +177,14 @@ export function WorkItemModal({
                 value={status}
                 options={kind === 'call' ? CALL_STATUS_OPTIONS : TASK_STATUS_OPTIONS}
                 onChange={(event) => setStatus(event.target.value as TaskStatus)}
+              />
+              <TextField
+                label="Scheduled for"
+                type="date"
+                value={scheduledFor}
+                hint="Optional. This item stays on today and also appears on the scheduled day."
+                fieldClassName="form-grid__full"
+                onChange={(event) => setScheduledFor(event.target.value)}
               />
               <TextField
                 label="Assigned to"
@@ -244,7 +263,16 @@ export function WorkItemModal({
 }
 
 type TaskEditorPatch = Partial<
-  Pick<Task, 'title' | 'description' | 'findings' | 'property' | 'status' | 'assignedTo'>
+  Pick<
+    Task,
+    | 'title'
+    | 'description'
+    | 'findings'
+    | 'property'
+    | 'status'
+    | 'scheduledFor'
+    | 'assignedTo'
+  >
 >
 
 interface TaskEditorModalProps {
@@ -265,6 +293,7 @@ export function TaskEditorModal({
   const [findings, setFindings] = useState('')
   const [property, setProperty] = useState<Property>('all')
   const [status, setStatus] = useState<TaskStatus>('untouched')
+  const [scheduledFor, setScheduledFor] = useState<ISODate>('')
   const [assignedTo, setAssignedTo] = useState('')
 
   useEffect(() => {
@@ -274,6 +303,7 @@ export function TaskEditorModal({
     setFindings(task.findings)
     setProperty(task.property)
     setStatus(task.status)
+    setScheduledFor(task.scheduledFor ?? '')
     setAssignedTo(task.assignedTo)
   }, [task])
 
@@ -284,6 +314,7 @@ export function TaskEditorModal({
       findings: findings.trim(),
       property,
       status,
+      scheduledFor: scheduledFor || null,
       assignedTo: assignedTo.trim(),
     }
   }
@@ -300,7 +331,13 @@ export function TaskEditorModal({
       open={task !== null}
       onClose={onClose}
       title="Edit task"
-      description={task ? `Scheduled for ${format(fromISODate(task.date), 'd MMMM yyyy')}` : undefined}
+      description={
+        task
+          ? task.scheduledFor
+            ? `Added on ${format(fromISODate(task.date), 'd MMMM yyyy')} · Also scheduled for ${format(fromISODate(task.scheduledFor), 'd MMMM yyyy')}`
+            : `Added on ${format(fromISODate(task.date), 'd MMMM yyyy')}`
+          : undefined
+      }
       footer={(
         <>
           <Button variant="quiet" onClick={onClose}>Cancel</Button>
@@ -350,6 +387,20 @@ export function TaskEditorModal({
           options={TASK_STATUS_OPTIONS}
           onChange={(event) => setStatus(event.target.value as TaskStatus)}
         />
+        <div className="scheduled-date-field form-grid__full">
+          <TextField
+            label="Scheduled for"
+            type="date"
+            value={scheduledFor}
+            hint="Optional. The task stays on its added day and also appears on this date."
+            onChange={(event) => setScheduledFor(event.target.value)}
+          />
+          {scheduledFor ? (
+            <Button type="button" size="sm" variant="quiet" onClick={() => setScheduledFor('')}>
+              Remove scheduled date
+            </Button>
+          ) : null}
+        </div>
         <TextField
           label="Assigned to"
           placeholder="e.g. Cleaner, John, Maintenance team"
@@ -381,7 +432,7 @@ export function ShiftTaskModal({ task, onClose, onShift }: ShiftTaskModalProps) 
   const [date, setDate] = useState<ISODate>('')
 
   useEffect(() => {
-    if (task) setDate(task.date)
+    if (task) setDate(task.scheduledFor ?? task.date)
   }, [task])
 
   function submit(event: FormEvent) {
@@ -395,23 +446,23 @@ export function ShiftTaskModal({ task, onClose, onShift }: ShiftTaskModalProps) 
     <Modal
       open={task !== null}
       onClose={onClose}
-      title="Shift this task"
-      description={task?.title || 'Choose a new working day.'}
+      title="Schedule this task"
+      description={task ? 'It will remain on the day you added it and appear on this scheduled day too.' : undefined}
       footer={(
         <>
           <Button variant="quiet" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="shift-task-form" leadingIcon={CalendarClock}>Move task</Button>
+          <Button type="submit" form="shift-task-form" leadingIcon={CalendarClock}>Schedule task</Button>
         </>
       )}
     >
       <form id="shift-task-form" onSubmit={submit}>
         <TextField
-          label="New date"
+          label="Scheduled for"
           type="date"
           value={date}
           required
           autoFocus
-          hint="The task will disappear from its old day and appear on the new one."
+          hint="The task stays on its added day and appears on this day too."
           onChange={(event) => setDate(event.target.value)}
         />
       </form>

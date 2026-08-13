@@ -183,7 +183,14 @@ export function TaskCard({
             />
           ) : null}
           <IconButton label={isCall ? 'Edit call' : 'Edit task'} icon={Edit3} variant="quiet" size="sm" onClick={onEdit} />
-          <IconButton label={isCall ? 'Shift call to another day' : 'Shift task to another day'} icon={ArrowRightLeft} variant="quiet" size="sm" onClick={onShift} />
+          <IconButton
+            label={isCall ? 'Set call scheduled date' : 'Set task scheduled date'}
+            title="Set scheduled date"
+            icon={ArrowRightLeft}
+            variant="quiet"
+            size="sm"
+            onClick={onShift}
+          />
           <IconButton
             label={isCall ? 'Delete call' : 'Delete task'}
             icon={Trash2}
@@ -315,7 +322,12 @@ export function TaskCard({
           {task.assignedTo ? (
             <span className="assignee-badge"><UserRound aria-hidden="true" />{task.assignedTo}</span>
           ) : null}
-          {showDate ? <span className="task-card__date">{task.date}</span> : null}
+          {task.scheduledFor ? (
+            <span className="task-card__scheduled-date">
+              Scheduled {format(fromISODate(task.scheduledFor), 'd MMM')}
+            </span>
+          ) : null}
+          {showDate ? <span className="task-card__date">Added {task.date}</span> : null}
         </div>
         <label className="status-select">
           <span className="sr-only">{isCall ? 'Call status' : 'Task status'}</span>

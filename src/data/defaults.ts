@@ -118,6 +118,7 @@ function normalizeTask(value: unknown, fallbackTimestamp: string): Task | null {
     id,
     kind,
     date: date(value.date, toISODate()),
+    scheduledFor: nullableDate(value.scheduledFor),
     title: text(value.title),
     description: text(value.description),
     findings: text(value.findings),

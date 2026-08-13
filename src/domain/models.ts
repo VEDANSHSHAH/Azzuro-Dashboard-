@@ -84,7 +84,10 @@ export interface Note {
 export interface Task {
   id: string
   kind: TaskKind
+  /** The Day-wise date where this task was first added. */
   date: ISODate
+  /** An optional second Day-wise date where the task should also appear. */
+  scheduledFor: ISODate | null
   title: string
   description: string
   findings: string
@@ -170,6 +173,7 @@ export type UpdateNoteInput = Partial<
 export interface CreateTaskInput {
   kind?: TaskKind
   date?: ISODate
+  scheduledFor?: ISODate | null
   title?: string
   description?: string
   findings?: string
@@ -186,6 +190,7 @@ export type UpdateTaskInput = Partial<
     Task,
     | 'kind'
     | 'date'
+    | 'scheduledFor'
     | 'title'
     | 'description'
     | 'findings'

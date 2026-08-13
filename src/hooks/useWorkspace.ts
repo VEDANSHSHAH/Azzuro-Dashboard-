@@ -9,6 +9,7 @@ import {
 } from '../domain/calls'
 import { isReminderForDate } from '../domain/reminders'
 import { normalizeTaskParentId } from '../domain/taskChains'
+import { isTaskForDate } from '../domain/taskDates'
 import type {
   AppData,
   CleaningEntry,
@@ -347,7 +348,8 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
   )
 
   const getTasksForDate = useCallback(
-    (date: ISODate): Task[] => data.tasks.filter((task) => task.date === date),
+    (date: ISODate): Task[] =>
+      data.tasks.filter((task) => isTaskForDate(task, date)),
     [data.tasks],
   )
 
@@ -393,7 +395,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
   )
 
   const selectedTasks = useMemo(
-    () => data.tasks.filter((task) => task.date === selectedDate),
+    () => data.tasks.filter((task) => isTaskForDate(task, selectedDate)),
     [data.tasks, selectedDate],
   )
 
@@ -411,7 +413,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
   )
 
   const todayTasks = useMemo(
-    () => data.tasks.filter((task) => task.date === today),
+    () => data.tasks.filter((task) => isTaskForDate(task, today)),
     [data.tasks, today],
   )
 
@@ -494,6 +496,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         id,
         kind,
         date: normalizeISODate(input.date, selectedDate),
+        scheduledFor: nullableDate(input.scheduledFor ?? null),
         title: input.title ?? '',
         description: input.description ?? '',
         findings: input.findings ?? '',
@@ -566,6 +569,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         id,
         kind: 'task',
         date: normalizeISODate(input.date, call.date),
+        scheduledFor: nullableDate(input.scheduledFor ?? null),
         title: input.title ?? point.text,
         description: input.description ?? '',
         findings: input.findings ?? '',
@@ -634,6 +638,10 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
               patch.date === undefined
                 ? task.date
                 : normalizeISODate(patch.date, task.date),
+            scheduledFor:
+              patch.scheduledFor === undefined
+                ? task.scheduledFor
+                : nullableDate(patch.scheduledFor),
             status: nextStatus,
             assignedTo:
               typeof patch.assignedTo === 'string'
@@ -696,7 +704,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
 
   const shiftTask = useCallback(
     (id: string, date: ISODate): void => {
-      updateTask(id, { date: normalizeISODate(date) })
+      updateTask(id, { scheduledFor: normalizeISODate(date) })
     },
     [updateTask],
   )
