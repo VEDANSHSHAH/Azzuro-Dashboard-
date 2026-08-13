@@ -5,6 +5,7 @@ import {
   CalendarRange,
   CalendarCheck2,
   Link2,
+  LogOut,
   Search,
   ShieldCheck,
   Sparkles,
@@ -12,6 +13,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   AppShell,
+  IconButton,
   SaveIndicator,
   ToastViewport,
   type NavigationItem,
@@ -29,6 +31,7 @@ import { LinksPage } from './pages/LinksPage'
 import { RulesPage } from './pages/RulesPage'
 import { TodayPage } from './pages/TodayPage'
 import { ThingsToRememberPage } from './pages/ThingsToRememberPage'
+import { SignInPage } from './pages/SignInPage'
 
 type PageId = 'today' | 'day' | 'reminders' | 'cleaning' | 'rules' | 'links'
 
@@ -135,6 +138,28 @@ function App() {
 
   const workModalDate = activePage === 'today' ? workspace.today : workspace.selectedDate
 
+  if (workspace.accessState !== 'ready') {
+    if (workspace.accessState === 'loading') {
+      return (
+        <main className="workspace-loading" aria-live="polite">
+          <div className="workspace-loading__mark" aria-hidden="true">MA</div>
+          <p className="page__eyebrow">MYWORK AZZURO</p>
+          <h1>Opening your private workspace</h1>
+          <p>Connecting securely to your operations data.</p>
+        </main>
+      )
+    }
+
+    return (
+      <SignInPage
+        busy={false}
+        error={workspace.authError}
+        onSignIn={workspace.signIn}
+        onSignUp={workspace.signUp}
+      />
+    )
+  }
+
   return (
     <AppShell
       items={navigation}
@@ -162,6 +187,16 @@ function App() {
             <kbd>Ctrl K</kbd>
           </label>
           <SaveIndicator state={workspace.saveState} savedLabel="Autosaved" />
+          <span className="account-email" title={workspace.userEmail ?? undefined}>
+            {workspace.userEmail}
+          </span>
+          <IconButton
+            label="Sign out"
+            icon={LogOut}
+            variant="quiet"
+            size="sm"
+            onClick={() => void workspace.signOut()}
+          />
         </div>
       </div>
 

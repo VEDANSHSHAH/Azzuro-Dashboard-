@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createEmptyAppData, createId, normalizeAppData } from '../data/defaults'
-import { loadWorkspaceData, saveWorkspaceData } from '../data/storage'
+import { createEmptyAppData, createId } from '../data/defaults'
 import { addDays, isISODate, normalizeISODate, toISODate } from '../domain/dates'
 import {
   normalizeCallPoints,
@@ -34,15 +33,16 @@ import type {
   UpdateTaskInput,
 } from '../domain/models'
 import {
-  deleteNativeSecret,
-  getNativeSecret,
-  isNativeApp,
-  loadNativeState,
-  saveNativeState,
-  setNativeSecret,
-} from '../native'
+  isSupabaseConfigured,
+  loadCloudWorkspace,
+  loadLegacyWorkspace,
+  saveCloudWorkspace,
+  saveLinkSecrets,
+  supabase,
+} from '../supabase'
 
 export type SaveState = 'saved' | 'saving' | 'error'
+export type WorkspaceAccessState = 'loading' | 'signed-out' | 'ready' | 'error'
 
 export interface UseWorkspaceOptions {
   /** Delay between the last edit and local persistence. Defaults to 450ms. */
@@ -51,6 +51,9 @@ export interface UseWorkspaceOptions {
 
 export interface WorkspaceApi {
   data: AppData
+  accessState: WorkspaceAccessState
+  authError: string | null
+  userEmail: string | null
   selectedDate: ISODate
   today: ISODate
   isToday: boolean
@@ -104,6 +107,9 @@ export interface WorkspaceApi {
   deleteLink: (id: string) => void
   resetWorkspace: () => void
   flush: () => boolean
+  signIn: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string) => Promise<void>
+  signOut: () => Promise<void>
 }
 
 const DEFAULT_SAVE_DELAY = 450
@@ -118,15 +124,25 @@ function nullableDate(value: ISODate | null): ISODate | null {
 
 export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
   const saveDelay = Math.max(0, options.saveDelay ?? DEFAULT_SAVE_DELAY)
-  const [data, setData] = useState<AppData>(loadWorkspaceData)
+  const [data, setData] = useState<AppData>(createEmptyAppData)
+  const [accessState, setAccessState] = useState<WorkspaceAccessState>(
+    isSupabaseConfigured ? 'loading' : 'error',
+  )
+  const [authError, setAuthError] = useState<string | null>(
+    isSupabaseConfigured
+      ? null
+      : 'This MYWORK AZZURO build is missing its Supabase connection settings.',
+  )
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [selectedDate, setSelectedDateState] = useState<ISODate>(toISODate)
   const [saveState, setSaveState] = useState<SaveState>('saved')
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
   const dataRef = useRef(data)
   const firstPersistencePass = useRef(true)
-  const nativeMode = isNativeApp()
-  const nativeHydrated = useRef(!nativeMode)
+  const revisionRef = useRef<number | null>(null)
   const nativeSecretIds = useRef<Set<string>>(new Set())
+  const activeUserId = useRef<string | null | undefined>(undefined)
+  const legacyImported = useRef(false)
   dataRef.current = data
 
   const today = toISODate()
@@ -146,73 +162,113 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
 
   const persistData = useCallback(
     async (workspaceData: AppData): Promise<boolean> => {
-      if (!nativeMode) return saveWorkspaceData(workspaceData)
-      if (!nativeHydrated.current) return false
-
       try {
-        const currentIds = new Set(workspaceData.links.map((link) => link.id))
-        const removedIds = [...nativeSecretIds.current].filter(
-          (id) => !currentIds.has(id),
+        const currentIds = await saveLinkSecrets(
+          workspaceData.links,
+          nativeSecretIds.current,
         )
-
-        await Promise.all([
-          ...removedIds.map((id) => deleteNativeSecret(id)),
-          ...workspaceData.links.map((link) =>
-            link.password
-              ? setNativeSecret(link.id, link.password)
-              : deleteNativeSecret(link.id),
-          ),
-        ])
-        await saveNativeState(workspaceData)
+        const saved = await saveCloudWorkspace(workspaceData, revisionRef.current)
         nativeSecretIds.current = currentIds
+        revisionRef.current = saved.revision
         return true
       } catch {
         return false
       }
     },
-    [nativeMode],
+    [],
   )
 
   useEffect(() => {
-    if (!nativeMode) return
-
     let cancelled = false
-    void (async () => {
+    if (!supabase) return () => { cancelled = true }
+
+    async function hydrateWorkspace(): Promise<void> {
       try {
-        const nativeState = await loadNativeState()
+        const cloudWorkspace = await loadCloudWorkspace()
         if (cancelled) return
-        if (nativeState === null) {
-          nativeHydrated.current = true
-          nativeSecretIds.current = new Set()
+
+        if (cloudWorkspace) {
+          firstPersistencePass.current = true
+          nativeSecretIds.current = new Set(
+            cloudWorkspace.data.links.map((link) => link.id),
+          )
+          revisionRef.current = cloudWorkspace.revision
+          dataRef.current = cloudWorkspace.data
+          setData(cloudWorkspace.data)
+          setSaveState('saved')
+          setLastSavedAt(cloudWorkspace.data.updatedAt)
+          setAccessState('ready')
           return
         }
 
-        const normalized = normalizeAppData(nativeState)
-        const links = await Promise.all(
-          normalized.links.map(async (link) => ({
-            ...link,
-            password: (await getNativeSecret(link.id)) ?? '',
-          })),
-        )
+        const initialData = legacyImported.current
+          ? createEmptyAppData()
+          : await loadLegacyWorkspace()
         if (cancelled) return
 
-        const hydrated = { ...normalized, links }
-        nativeHydrated.current = true
-        nativeSecretIds.current = new Set(links.map((link) => link.id))
-        dataRef.current = hydrated
-        setData(hydrated)
+        const createdWorkspace = await saveCloudWorkspace(initialData, null)
+        if (cancelled) return
+
+        legacyImported.current = true
+        firstPersistencePass.current = true
+        nativeSecretIds.current = new Set(initialData.links.map((link) => link.id))
+        revisionRef.current = createdWorkspace.revision
+        dataRef.current = initialData
+        setData(initialData)
         setSaveState('saved')
-      } catch {
-        if (!cancelled) setSaveState('error')
+        setLastSavedAt(createdWorkspace.data.updatedAt)
+        setAccessState('ready')
+      } catch (error) {
+        if (cancelled) return
+        setAuthError(error instanceof Error ? error.message : 'Could not load your cloud workspace.')
+        setAccessState('error')
       }
-    })()
+    }
+
+    function applySession(userId: string | null, email: string | null): void {
+      if (activeUserId.current === userId) return
+
+      activeUserId.current = userId
+      firstPersistencePass.current = true
+      revisionRef.current = null
+      setUserEmail(email)
+      setAuthError(null)
+
+      if (!userId) {
+        dataRef.current = createEmptyAppData()
+        setData(dataRef.current)
+        setAccessState('signed-out')
+        setSaveState('saved')
+        return
+      }
+
+      setAccessState('loading')
+      void hydrateWorkspace()
+    }
+
+    void supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (cancelled) return
+      if (error) {
+        setAuthError(error.message)
+        setAccessState('error')
+        return
+      }
+      applySession(session?.user.id ?? null, session?.user.email ?? null)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return
+      applySession(session?.user.id ?? null, session?.user.email ?? null)
+    })
 
     return () => {
       cancelled = true
+      listener.subscription.unsubscribe()
     }
-  }, [nativeMode])
+  }, [])
 
   useEffect(() => {
+    if (accessState !== 'ready') return
     if (firstPersistencePass.current) {
       firstPersistencePass.current = false
       return
@@ -230,10 +286,11 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     }, saveDelay)
 
     return () => window.clearTimeout(timer)
-  }, [data, persistData, saveDelay])
+  }, [accessState, data, persistData, saveDelay])
 
   useEffect(() => {
     const saveLatestData = (): void => {
+      if (accessState !== 'ready') return
       void persistData(dataRef.current)
     }
 
@@ -242,7 +299,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
       window.removeEventListener('pagehide', saveLatestData)
       saveLatestData()
     }
-  }, [persistData])
+  }, [accessState, persistData])
 
   const selectDate = useCallback((date: ISODate): void => {
     setSelectedDateState(normalizeISODate(date))
@@ -863,24 +920,73 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     updateData(() => createEmptyAppData())
   }, [updateData])
 
-  const flush = useCallback((): boolean => {
-    if (nativeMode) {
-      setSaveState('saving')
-      void persistData(dataRef.current).then((saved) => {
-        setSaveState(saved ? 'saved' : 'error')
-        if (saved) setLastSavedAt(timestamp())
-      })
-      return true
+  const signIn = useCallback(async (email: string, password: string): Promise<void> => {
+    if (!supabase) {
+      setAuthError('This MYWORK AZZURO build is missing its Supabase connection settings.')
+      setAccessState('error')
+      return
     }
 
-    const saved = saveWorkspaceData(dataRef.current)
-    setSaveState(saved ? 'saved' : 'error')
-    if (saved) setLastSavedAt(timestamp())
-    return saved
-  }, [nativeMode, persistData])
+    setAuthError(null)
+    setAccessState('loading')
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setAuthError(error.message)
+      setAccessState('signed-out')
+    }
+  }, [])
+
+  const signUp = useCallback(async (email: string, password: string): Promise<void> => {
+    if (!supabase) {
+      setAuthError('This MYWORK AZZURO build is missing its Supabase connection settings.')
+      setAccessState('error')
+      return
+    }
+
+    setAuthError(null)
+    setAccessState('loading')
+    const { data: signUpData, error } = await supabase.auth.signUp({ email, password })
+    if (error) {
+      setAuthError(error.message)
+      setAccessState('signed-out')
+      return
+    }
+
+    if (!signUpData.session) {
+      setAuthError('Account created. Check your email to confirm it, then sign in here.')
+      setAccessState('signed-out')
+    }
+  }, [])
+
+  const signOut = useCallback(async (): Promise<void> => {
+    if (!supabase) return
+
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      setAuthError(error.message)
+      return
+    }
+
+    activeUserId.current = undefined
+    setAuthError(null)
+  }, [])
+
+  const flush = useCallback((): boolean => {
+    if (accessState !== 'ready') return false
+
+    setSaveState('saving')
+    void persistData(dataRef.current).then((saved) => {
+      setSaveState(saved ? 'saved' : 'error')
+      if (saved) setLastSavedAt(timestamp())
+    })
+    return true
+  }, [accessState, persistData])
 
   return {
     data,
+    accessState,
+    authError,
+    userEmail,
     selectedDate,
     today,
     isToday: selectedDate === today,
@@ -927,6 +1033,9 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     deleteLink,
     resetWorkspace,
     flush,
+    signIn,
+    signUp,
+    signOut,
   }
 }
 

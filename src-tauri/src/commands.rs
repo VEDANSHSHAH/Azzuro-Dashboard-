@@ -12,21 +12,17 @@ fn task_failed(error: impl std::fmt::Display) -> String {
 }
 
 #[tauri::command]
-pub async fn load_state(native_state: State<'_, NativeState>) -> CommandResult<Value> {
-    let store = Arc::clone(&native_state.state_store);
+pub async fn load_state(native_state: State<'_, NativeState>) -> CommandResult<Option<Value>> {
+    let Some(store) = native_state.legacy_state_store.as_ref() else {
+        return Ok(None);
+    };
+    let store = Arc::clone(store);
 
-    tauri::async_runtime::spawn_blocking(move || store.load())
+    let legacy_state = tauri::async_runtime::spawn_blocking(move || store.load())
         .await
-        .map_err(task_failed)?
-}
+        .map_err(task_failed)??;
 
-#[tauri::command]
-pub async fn save_state(state: Value, native_state: State<'_, NativeState>) -> CommandResult<()> {
-    let store = Arc::clone(&native_state.state_store);
-
-    tauri::async_runtime::spawn_blocking(move || store.save(&state))
-        .await
-        .map_err(task_failed)?
+    Ok(Some(legacy_state))
 }
 
 #[tauri::command(rename_all = "camelCase")]

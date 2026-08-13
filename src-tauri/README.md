@@ -1,6 +1,9 @@
 # MYWORK AZZURO native layer
 
-This Tauri 2 layer owns durable local state and secure link passwords.
+This Tauri 2 layer owns Windows Credential Manager integration and one-time
+read-only import of workspaces created by MYWORK AZZURO 0.4 and earlier.
+
+Operational data is stored in Supabase Postgres from MYWORK AZZURO 0.5 onward.
 
 ## Frontend dependencies
 
@@ -28,8 +31,7 @@ Then use `npm run tauri dev` for the desktop development build.
 ```ts
 import { invoke } from '@tauri-apps/api/core';
 
-const state = await invoke<Record<string, unknown>>('load_state');
-await invoke('save_state', { state });
+const legacyState = await invoke<Record<string, unknown> | null>('load_state');
 
 await invoke('set_secret', { secretId: link.id, secret: password });
 const password = await invoke<string | null>('get_secret', {
@@ -38,11 +40,11 @@ const password = await invoke<string | null>('get_secret', {
 await invoke('delete_secret', { secretId: link.id });
 ```
 
-Use an immutable link ID (preferably a UUID) as `secretId`. Store only the link's
-metadata in normal app state, for example `username`, `url`, `secretId`, and
-`hasPassword`. The backend rejects common plaintext password fields in
-`save_state`.
+Use an immutable link ID as `secretId`. Link passwords are never sent to
+Supabase; the desktop app stores them locally in Windows Credential Manager.
+Supabase Auth session material uses a separate credential service.
 
-On Windows, non-secret state is stored in the app data directory as
-`mywork-azzuro.sqlite3`. Passwords are stored separately by Windows Credential
-Manager under the service name `com.azzuro.mywork.links`.
+On Windows, saved link passwords use the service name `com.azzuro.mywork.links`
+and Supabase sessions use `com.azzuro.mywork.auth`. An existing
+`mywork-azzuro.sqlite3` file is read once during the first cloud workspace
+creation, then is never created or modified by the 0.5 desktop app.

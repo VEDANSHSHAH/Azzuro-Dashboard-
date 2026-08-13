@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use zeroize::Zeroize;
 
 const MAX_SECRET_ID_BYTES: usize = 128;
-const MAX_SECRET_BYTES: usize = 2_048;
+const MAX_SECRET_BYTES: usize = 8_192;
 
 pub(crate) struct SecretStore {
     gate: Mutex<()>,
@@ -21,10 +21,10 @@ impl SecretStore {
             validate_secret_id(secret_id)?;
 
             if secret.is_empty() {
-                return Err("A password cannot be empty; delete it instead.".to_owned());
+                return Err("A secure value cannot be empty; delete it instead.".to_owned());
             }
             if secret.len() > MAX_SECRET_BYTES {
-                return Err("The password is too large for secure storage.".to_owned());
+                return Err("The secure value is too large for credential storage.".to_owned());
             }
 
             self.with_lock(|| platform::set(secret_id, &secret))
@@ -75,7 +75,8 @@ fn validate_secret_id(secret_id: &str) -> Result<(), String> {
 mod platform {
     use keyring::{Entry, Error};
 
-    const SERVICE_NAME: &str = "com.azzuro.mywork.links";
+    const LINK_SERVICE_NAME: &str = "com.azzuro.mywork.links";
+    const AUTH_SERVICE_NAME: &str = "com.azzuro.mywork.auth";
 
     pub(super) fn set(secret_id: &str, secret: &str) -> Result<(), String> {
         entry(secret_id)?
@@ -99,7 +100,16 @@ mod platform {
     }
 
     fn entry(secret_id: &str) -> Result<Entry, String> {
-        Entry::new(SERVICE_NAME, secret_id).map_err(|error| credential_error("open", error))
+        Entry::new(service_name(secret_id), secret_id)
+            .map_err(|error| credential_error("open", error))
+    }
+
+    fn service_name(secret_id: &str) -> &'static str {
+        if secret_id.starts_with("auth:") {
+            AUTH_SERVICE_NAME
+        } else {
+            LINK_SERVICE_NAME
+        }
     }
 
     fn credential_error(action: &str, error: Error) -> String {

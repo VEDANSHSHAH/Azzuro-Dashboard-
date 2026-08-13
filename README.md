@@ -1,7 +1,7 @@
 # MYWORK AZZURO
 
-A private, local-first operations workspace for daily notes, property tasks,
-cleaning logs, general rules, and operational links.
+A private Windows desktop operations workspace backed by Supabase Postgres for
+daily notes, property tasks, cleaning logs, general rules, calls, and links.
 
 ## What is included
 
@@ -22,8 +22,8 @@ cleaning logs, general rules, and operational links.
   or an inclusive date range and surfaces them above the relevant daily work.
 - **Cleaning Log** records property notes, prior cleans, and upcoming schedules.
 - **General Rules** provides an autosaving operational knowledge base.
-- **Links & Credentials** keeps website metadata in SQLite and passwords in
-  Windows Credential Manager in the desktop build.
+- **Links & Credentials** syncs website metadata to your private cloud
+  workspace while keeping passwords only in Windows Credential Manager.
 - Restrained animation, responsive navigation, keyboard-friendly dialogs, and
   reduced-motion support are built into the shared component system.
 
@@ -33,20 +33,32 @@ cleaning logs, general rules, and operational links.
 - Vite
 - Motion for React
 - Tauri 2 desktop shell
-- SQLite for non-secret application data
-- Windows Credential Manager for passwords
+- Supabase Auth + Postgres with Row Level Security
+- Windows Credential Manager for link passwords and desktop sign-in sessions
 
-## Run the web interface
+## Supabase setup
+
+Create a Supabase project, then copy `.env.example` to `.env.local` and add the
+project URL plus its **publishable** key. Never add a database URL, secret key,
+or service-role key to the app or Git.
+
+The versioned schema and Row Level Security policies live in
+`supabase/migrations/`. Link the project and apply them with:
+
+```powershell
+npx supabase login
+npx supabase link --project-ref your-project-ref
+npx supabase db push
+```
+
+## Run the desktop app
 
 ```powershell
 npm install
 npm run dev
 ```
 
-The browser version uses local browser storage for development and preview.
-Use the desktop build for secure credential storage.
-
-## Run the Windows desktop application
+Use the installed desktop build for Windows Credential Manager integration.
 
 Install the Rust toolchain and the Tauri Windows prerequisites, then run:
 

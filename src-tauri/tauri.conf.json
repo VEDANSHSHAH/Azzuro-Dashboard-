@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "MYWORK AZZURO",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "identifier": "com.azzuro.mywork",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -26,7 +26,7 @@
     "security": {
       "csp": {
         "default-src": "'self' customprotocol: asset:",
-        "connect-src": "ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420",
+        "connect-src": "ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420 https://agakisisszhijzoospdy.supabase.co wss://agakisisszhijzoospdy.supabase.co",
         "font-src": "'self' data:",
         "img-src": "'self' asset: http://asset.localhost blob: data:",
         "style-src": "'self' 'unsafe-inline'"
@@ -46,6 +46,6 @@
       "icons/icon.ico"
     ],
     "shortDescription": "Your private operations workspace",
-    "longDescription": "A local-first workspace for daily notes, tasks, cleaning logs, rules, and operational links."
+    "longDescription": "A private cloud-synced operations workspace for daily notes, tasks, cleaning logs, rules, and operational links."
   }
 }

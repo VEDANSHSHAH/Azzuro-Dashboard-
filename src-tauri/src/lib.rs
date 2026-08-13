@@ -5,20 +5,20 @@ mod storage;
 use std::sync::Arc;
 
 use secrets::SecretStore;
-use storage::StateStore;
+use storage::LegacyStateStore;
 use tauri::Manager;
 
 const DATABASE_FILE_NAME: &str = "mywork-azzuro.sqlite3";
 
 pub(crate) struct NativeState {
-    pub(crate) state_store: Arc<StateStore>,
+    pub(crate) legacy_state_store: Option<Arc<LegacyStateStore>>,
     pub(crate) secret_store: Arc<SecretStore>,
 }
 
 impl NativeState {
-    fn new(state_store: StateStore) -> Self {
+    fn new(legacy_state_store: Option<LegacyStateStore>) -> Self {
         Self {
-            state_store: Arc::new(state_store),
+            legacy_state_store: legacy_state_store.map(Arc::new),
             secret_store: Arc::new(SecretStore::new()),
         }
     }
@@ -30,16 +30,14 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
-            std::fs::create_dir_all(&app_data_dir)?;
-
-            let state_store = StateStore::open(app_data_dir.join(DATABASE_FILE_NAME))?;
-            app.manage(NativeState::new(state_store));
+            let legacy_state_store =
+                LegacyStateStore::open_if_present(app_data_dir.join(DATABASE_FILE_NAME))?;
+            app.manage(NativeState::new(legacy_state_store));
 
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::load_state,
-            commands::save_state,
             commands::set_secret,
             commands::get_secret,
             commands::delete_secret,
