@@ -1,0 +1,23 @@
+[package]
+name = "mywork-azzuro"
+version = "0.4.0"
+description = "A private, local-first operations workspace."
+authors = ["MYWORK AZZURO"]
+edition = "2021"
+
+[lib]
+name = "mywork_azzuro_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+rusqlite = { version = "0.40", features = ["bundled"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+zeroize = "1.8"
+
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3.6.3", features = ["windows-native"] }

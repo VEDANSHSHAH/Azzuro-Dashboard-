@@ -1,0 +1,1 @@
+{"main-capability":{"identifier":"main-capability","description":"Core application permissions for the main MYWORK AZZURO window.","local":true,"windows":["main"],"permissions":["core:default","opener:default"]}}
