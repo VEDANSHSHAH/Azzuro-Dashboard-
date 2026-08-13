@@ -35,7 +35,7 @@ function matchesQuery(task: Task, query: string): boolean {
   const normalizedQuery = query.trim().toLocaleLowerCase()
   if (!normalizedQuery) return true
 
-  return `${task.title} ${task.description} ${task.findings} ${task.callOutcome} ${task.callPoints.map((point) => point.text).join(' ')} ${task.assignedTo}`
+  return `${task.title} ${task.description} ${task.statusNote} ${task.findings} ${task.callOutcome} ${task.callPoints.map((point) => point.text).join(' ')} ${task.assignedTo}`
     .toLocaleLowerCase()
     .includes(normalizedQuery)
 }

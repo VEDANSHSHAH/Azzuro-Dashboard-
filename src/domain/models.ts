@@ -93,6 +93,8 @@ export interface Task {
   scheduledFor: ISODate | null
   title: string
   description: string
+  /** A living update explaining what is currently happening with the task. */
+  statusNote: string
   findings: string
   callOutcome: string
   callPoints: CallPoint[]
@@ -180,6 +182,7 @@ export interface CreateTaskInput {
   scheduledFor?: ISODate | null
   title?: string
   description?: string
+  statusNote?: string
   findings?: string
   callOutcome?: string
   callPoints?: CallPoint[]
@@ -198,6 +201,7 @@ export type UpdateTaskInput = Partial<
     | 'scheduledFor'
     | 'title'
     | 'description'
+    | 'statusNote'
     | 'findings'
     | 'callOutcome'
     | 'callPoints'

@@ -65,7 +65,7 @@ export function WorkBoard({
     const propertyMatches = propertyFilter === 'all' || task.property === propertyFilter || task.property === 'all'
     const queryMatches =
       !normalizedQuery ||
-      `${task.title} ${task.description} ${task.findings} ${task.callOutcome} ${task.callPoints.map((point) => point.text).join(' ')} ${task.assignedTo}`
+      `${task.title} ${task.description} ${task.statusNote} ${task.findings} ${task.callOutcome} ${task.callPoints.map((point) => point.text).join(' ')} ${task.assignedTo}`
         .toLocaleLowerCase()
         .includes(normalizedQuery)
     return propertyMatches && queryMatches && (!showNotDoneOnly || task.status !== 'done')

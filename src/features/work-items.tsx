@@ -207,6 +207,15 @@ export function TaskCard({
           />
         </div>
       </div>
+      {!isCall && task.statusNote ? (
+        <div className="task-card__status-note">
+          <MessageSquareText aria-hidden="true" />
+          <div>
+            <span className="task-card__status-note-label">Task status</span>
+            <p>{task.statusNote}</p>
+          </div>
+        </div>
+      ) : null}
       {isCall && !compact && task.description ? (
         <div className="call-card__discussion">
           <MessageSquareText aria-hidden="true" />

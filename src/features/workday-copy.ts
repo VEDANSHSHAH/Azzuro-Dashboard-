@@ -91,6 +91,7 @@ export function formatWorkdayForClipboard({
           })
         }
       } else {
+        addMultilineField(lines, 'Task status', task.statusNote)
         addMultilineField(lines, 'Findings', task.findings)
       }
       lines.push('')

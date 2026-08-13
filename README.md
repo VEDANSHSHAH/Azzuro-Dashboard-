@@ -27,6 +27,8 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
   answer from a call immediately becomes the next accountable action.
 - **Findings & outcomes** capture what a worker checked, discovered, or decided
   before or after a task is completed.
+- **Task status notes** keep a separate live update beneath the description for
+  blockers, approvals, progress, and the current situation.
 - **Linked follow-ups** create the next action directly from an existing task
   and keep both sides of the task trail visible and editable.
 - **Things to Remember** schedules visible reminders for one date, every day,

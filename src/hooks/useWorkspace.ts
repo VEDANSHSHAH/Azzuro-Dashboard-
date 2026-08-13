@@ -501,6 +501,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         scheduledFor: nullableDate(input.scheduledFor ?? null),
         title: input.title ?? '',
         description: input.description ?? '',
+        statusNote: input.statusNote ?? '',
         findings: input.findings ?? '',
         callOutcome: input.callOutcome ?? '',
         callPoints,
@@ -579,6 +580,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         scheduledFor: nullableDate(input.scheduledFor ?? null),
         title: input.title ?? point.text,
         description: input.description ?? '',
+        statusNote: input.statusNote ?? '',
         findings: input.findings ?? '',
         callOutcome: '',
         callPoints: [],
@@ -667,6 +669,10 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
             ),
             findings:
               typeof patch.findings === 'string' ? patch.findings : task.findings,
+            statusNote:
+              typeof patch.statusNote === 'string'
+                ? patch.statusNote
+                : task.statusNote,
             callOutcome:
               typeof patch.callOutcome === 'string'
                 ? patch.callOutcome

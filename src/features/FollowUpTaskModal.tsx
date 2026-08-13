@@ -45,6 +45,7 @@ export function FollowUpTaskModal({
 }: FollowUpTaskModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [statusNote, setStatusNote] = useState('')
   const [date, setDate] = useState('')
   const [property, setProperty] = useState<Property>('all')
   const [status, setStatus] = useState<TaskStatus>('scheduled')
@@ -58,6 +59,7 @@ export function FollowUpTaskModal({
     if (!parentTask) return
     setTitle(initialTitle)
     setDescription(initialDescription)
+    setStatusNote('')
     setDate(parentTask.date)
     setProperty(parentTask.property)
     setStatus('scheduled')
@@ -81,6 +83,7 @@ export function FollowUpTaskModal({
     onCreate({
       title: cleanTitle,
       description: description.trim(),
+      statusNote: statusNote.trim(),
       date: date as ISODate,
       property,
       status,
@@ -162,6 +165,15 @@ export function FollowUpTaskModal({
               placeholder="Add the context needed to complete this follow-up…"
               fieldClassName="form-grid__full"
               onChange={(event) => setDescription(event.target.value)}
+            />
+            <TextareaField
+              label="Task status note"
+              value={statusNote}
+              rows={4}
+              placeholder="What is happening now? Add updates, blockers, or approvals."
+              hint="Optional. This is a live progress note, separate from the description."
+              fieldClassName="form-grid__full"
+              onChange={(event) => setStatusNote(event.target.value)}
             />
             <TextField
               label="Scheduled date"

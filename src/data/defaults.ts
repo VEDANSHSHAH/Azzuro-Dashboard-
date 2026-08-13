@@ -123,6 +123,7 @@ function normalizeTask(value: unknown, fallbackTimestamp: string): Task | null {
     scheduledFor: nullableDate(value.scheduledFor),
     title: text(value.title),
     description: text(value.description),
+    statusNote: text(value.statusNote),
     findings: text(value.findings),
     callOutcome: text(value.callOutcome),
     callPoints: normalizeCallPoints(value.callPoints, id),

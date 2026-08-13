@@ -66,6 +66,7 @@ export function WorkItemModal({
 }: WorkItemModalProps) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [statusNote, setStatusNote] = useState('')
   const [property, setProperty] = useState<Property>('all')
   const [status, setStatus] = useState<TaskStatus>('untouched')
   const [scheduledFor, setScheduledFor] = useState<ISODate>('')
@@ -79,6 +80,7 @@ export function WorkItemModal({
     if (!open) return
     setTitle('')
     setContent('')
+    setStatusNote('')
     setProperty('all')
     setStatus(kind === 'call' ? 'scheduled' : 'untouched')
     setScheduledFor('')
@@ -101,6 +103,7 @@ export function WorkItemModal({
         scheduledFor: scheduledFor || null,
         title: title.trim(),
         description: content,
+        statusNote: statusNote.trim(),
         property,
         status,
         assignedTo: assignedTo.trim(),
@@ -171,6 +174,17 @@ export function WorkItemModal({
             fieldClassName="form-grid__full"
             onChange={(event) => setContent(event.target.value)}
           />
+          {kind === 'task' ? (
+            <TextareaField
+              label="Task status note"
+              placeholder="What is happening now? Add updates, blockers, approvals, or next information."
+              hint="Optional. This stays separate from the original task description."
+              value={statusNote}
+              rows={4}
+              fieldClassName="form-grid__full"
+              onChange={(event) => setStatusNote(event.target.value)}
+            />
+          ) : null}
           {kind === 'task' || kind === 'call' ? (
             <>
               <SelectField
@@ -273,6 +287,7 @@ type TaskEditorPatch = Partial<
     Task,
     | 'title'
     | 'description'
+    | 'statusNote'
     | 'findings'
     | 'property'
     | 'status'
@@ -297,6 +312,7 @@ export function TaskEditorModal({
 }: TaskEditorModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [statusNote, setStatusNote] = useState('')
   const [findings, setFindings] = useState('')
   const [property, setProperty] = useState<Property>('all')
   const [status, setStatus] = useState<TaskStatus>('untouched')
@@ -309,6 +325,7 @@ export function TaskEditorModal({
     if (!task) return
     setTitle(task.title)
     setDescription(task.description)
+    setStatusNote(task.statusNote)
     setFindings(task.findings)
     setProperty(task.property)
     setStatus(task.status)
@@ -321,6 +338,7 @@ export function TaskEditorModal({
     return {
       title: title.trim(),
       description,
+      statusNote: statusNote.trim(),
       findings: findings.trim(),
       property,
       status,
@@ -385,6 +403,15 @@ export function TaskEditorModal({
           rows={6}
           fieldClassName="form-grid__full"
           onChange={(event) => setDescription(event.target.value)}
+        />
+        <TextareaField
+          label="Task status note"
+          placeholder="What is happening now? Add updates, blockers, approvals, or next information."
+          hint="A live progress note that stays separate from the original description."
+          value={statusNote}
+          rows={4}
+          fieldClassName="form-grid__full"
+          onChange={(event) => setStatusNote(event.target.value)}
         />
         <SelectField
           label="Property"
