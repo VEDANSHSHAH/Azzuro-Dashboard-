@@ -33,8 +33,8 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
 - Vite
 - Motion for React
 - Tauri 2 desktop shell
-- Supabase Auth + Postgres with Row Level Security
-- Windows Credential Manager for link passwords and desktop sign-in sessions
+- Supabase anonymous device sessions + Postgres with Row Level Security
+- Windows Credential Manager for link passwords and the private device session
 
 ## Supabase setup
 
@@ -49,7 +49,14 @@ The versioned schema and Row Level Security policies live in
 npx supabase login
 npx supabase link --project-ref your-project-ref
 npx supabase db push
+npx supabase config push
 ```
+
+MYWORK AZZURO opens straight into a private workspace—there is no visible
+login. Its identity is stored securely on this Windows device, while Supabase
+Row Level Security limits cloud data to that device identity. Keep this
+device/session to retain access; another device will start a separate private
+workspace unless a future backup or account-linking feature is added.
 
 ## Run the desktop app
 

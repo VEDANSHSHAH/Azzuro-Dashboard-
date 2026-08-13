@@ -42,7 +42,7 @@ import {
 } from '../supabase'
 
 export type SaveState = 'saved' | 'saving' | 'error'
-export type WorkspaceAccessState = 'loading' | 'signed-out' | 'ready' | 'error'
+export type WorkspaceAccessState = 'loading' | 'ready' | 'error'
 
 export interface UseWorkspaceOptions {
   /** Delay between the last edit and local persistence. Defaults to 450ms. */
@@ -53,7 +53,6 @@ export interface WorkspaceApi {
   data: AppData
   accessState: WorkspaceAccessState
   authError: string | null
-  userEmail: string | null
   selectedDate: ISODate
   today: ISODate
   isToday: boolean
@@ -107,9 +106,6 @@ export interface WorkspaceApi {
   deleteLink: (id: string) => void
   resetWorkspace: () => void
   flush: () => boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
-  signOut: () => Promise<void>
 }
 
 const DEFAULT_SAVE_DELAY = 450
@@ -133,7 +129,6 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
       ? null
       : 'This MYWORK AZZURO build is missing its Supabase connection settings.',
   )
-  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [selectedDate, setSelectedDateState] = useState<ISODate>(toISODate)
   const [saveState, setSaveState] = useState<SaveState>('saved')
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
@@ -181,6 +176,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
   useEffect(() => {
     let cancelled = false
     if (!supabase) return () => { cancelled = true }
+    const client = supabase
 
     async function hydrateWorkspace(): Promise<void> {
       try {
@@ -225,40 +221,68 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
       }
     }
 
-    function applySession(userId: string | null, email: string | null): void {
+    function applySession(userId: string): void {
       if (activeUserId.current === userId) return
 
       activeUserId.current = userId
       firstPersistencePass.current = true
       revisionRef.current = null
-      setUserEmail(email)
       setAuthError(null)
-
-      if (!userId) {
-        dataRef.current = createEmptyAppData()
-        setData(dataRef.current)
-        setAccessState('signed-out')
-        setSaveState('saved')
-        return
-      }
-
       setAccessState('loading')
       void hydrateWorkspace()
     }
 
-    void supabase.auth.getSession().then(({ data: { session }, error }) => {
+    let acquiringSession = false
+    async function openWorkspace(): Promise<void> {
+      if (acquiringSession) return
+      acquiringSession = true
+      setAuthError(null)
+      setAccessState('loading')
+
+      const { data: sessionData, error: sessionError } =
+        await client.auth.getSession()
       if (cancelled) return
-      if (error) {
-        setAuthError(error.message)
+
+      if (sessionError) {
+        acquiringSession = false
+        setAuthError(sessionError.message)
         setAccessState('error')
         return
       }
-      applySession(session?.user.id ?? null, session?.user.email ?? null)
-    })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (sessionData.session) {
+        acquiringSession = false
+        applySession(sessionData.session.user.id)
+        return
+      }
+
+      const { data: anonymousData, error: anonymousError } =
+        await client.auth.signInAnonymously()
       if (cancelled) return
-      applySession(session?.user.id ?? null, session?.user.email ?? null)
+
+      acquiringSession = false
+      if (anonymousError || !anonymousData.session) {
+        setAuthError(
+          anonymousError?.message ??
+            'Could not create this device’s private workspace session.',
+        )
+        setAccessState('error')
+        return
+      }
+
+      applySession(anonymousData.session.user.id)
+    }
+
+    void openWorkspace()
+
+    const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return
+      if (session) {
+        acquiringSession = false
+        applySession(session.user.id)
+        return
+      }
+      void openWorkspace()
     })
 
     return () => {
@@ -920,57 +944,6 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     updateData(() => createEmptyAppData())
   }, [updateData])
 
-  const signIn = useCallback(async (email: string, password: string): Promise<void> => {
-    if (!supabase) {
-      setAuthError('This MYWORK AZZURO build is missing its Supabase connection settings.')
-      setAccessState('error')
-      return
-    }
-
-    setAuthError(null)
-    setAccessState('loading')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setAuthError(error.message)
-      setAccessState('signed-out')
-    }
-  }, [])
-
-  const signUp = useCallback(async (email: string, password: string): Promise<void> => {
-    if (!supabase) {
-      setAuthError('This MYWORK AZZURO build is missing its Supabase connection settings.')
-      setAccessState('error')
-      return
-    }
-
-    setAuthError(null)
-    setAccessState('loading')
-    const { data: signUpData, error } = await supabase.auth.signUp({ email, password })
-    if (error) {
-      setAuthError(error.message)
-      setAccessState('signed-out')
-      return
-    }
-
-    if (!signUpData.session) {
-      setAuthError('Account created. Check your email to confirm it, then sign in here.')
-      setAccessState('signed-out')
-    }
-  }, [])
-
-  const signOut = useCallback(async (): Promise<void> => {
-    if (!supabase) return
-
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      setAuthError(error.message)
-      return
-    }
-
-    activeUserId.current = undefined
-    setAuthError(null)
-  }, [])
-
   const flush = useCallback((): boolean => {
     if (accessState !== 'ready') return false
 
@@ -986,7 +959,6 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     data,
     accessState,
     authError,
-    userEmail,
     selectedDate,
     today,
     isToday: selectedDate === today,
@@ -1033,9 +1005,6 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     deleteLink,
     resetWorkspace,
     flush,
-    signIn,
-    signUp,
-    signOut,
   }
 }
 

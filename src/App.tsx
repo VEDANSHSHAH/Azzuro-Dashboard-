@@ -5,7 +5,6 @@ import {
   CalendarRange,
   CalendarCheck2,
   Link2,
-  LogOut,
   Search,
   ShieldCheck,
   Sparkles,
@@ -13,7 +12,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   AppShell,
-  IconButton,
+  Button,
   SaveIndicator,
   ToastViewport,
   type NavigationItem,
@@ -31,7 +30,6 @@ import { LinksPage } from './pages/LinksPage'
 import { RulesPage } from './pages/RulesPage'
 import { TodayPage } from './pages/TodayPage'
 import { ThingsToRememberPage } from './pages/ThingsToRememberPage'
-import { SignInPage } from './pages/SignInPage'
 
 type PageId = 'today' | 'day' | 'reminders' | 'cleaning' | 'rules' | 'links'
 
@@ -151,12 +149,13 @@ function App() {
     }
 
     return (
-      <SignInPage
-        busy={false}
-        error={workspace.authError}
-        onSignIn={workspace.signIn}
-        onSignUp={workspace.signUp}
-      />
+      <main className="workspace-loading workspace-loading--error" aria-live="assertive">
+        <div className="workspace-loading__mark" aria-hidden="true">MA</div>
+        <p className="page__eyebrow">MYWORK AZZURO</p>
+        <h1>Could not open your workspace</h1>
+        <p>{workspace.authError ?? 'Check your connection and try again.'}</p>
+        <Button onClick={() => window.location.reload()}>Try again</Button>
+      </main>
     )
   }
 
@@ -168,7 +167,7 @@ function App() {
       footer={
         <div className="sidebar__privacy">
           <ShieldCheck aria-hidden="true" />
-          <span>Private · Local-first workspace</span>
+          <span>Private device workspace</span>
         </div>
       }
     >
@@ -187,16 +186,6 @@ function App() {
             <kbd>Ctrl K</kbd>
           </label>
           <SaveIndicator state={workspace.saveState} savedLabel="Autosaved" />
-          <span className="account-email" title={workspace.userEmail ?? undefined}>
-            {workspace.userEmail}
-          </span>
-          <IconButton
-            label="Sign out"
-            icon={LogOut}
-            variant="quiet"
-            size="sm"
-            onClick={() => void workspace.signOut()}
-          />
         </div>
       </div>
 
