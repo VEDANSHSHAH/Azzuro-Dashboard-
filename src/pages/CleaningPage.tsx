@@ -6,6 +6,7 @@ import {
   Check,
   Edit3,
   KeyRound,
+  ListPlus,
   Plus,
   Sparkles,
   Trash2,
@@ -51,6 +52,9 @@ const lockChangedOptions = [
   { value: 'changed', label: 'Changed' },
 ] as const
 
+const MAX_BULK_BATHROOMS = 100
+const MAX_BATHROOM_NAME_LENGTH = 120
+
 interface CleaningPageProps {
   workspace: WorkspaceApi
   query: string
@@ -69,10 +73,41 @@ function DateValue({ value, empty = 'Not recorded' }: { value: string | null; em
   return <span>{value ? format(fromISODate(value), 'd MMM yyyy') : empty}</span>
 }
 
+function normalizeBathroomName(value: string): string {
+  return value.normalize('NFKC').trim().replace(/\s+/g, ' ')
+}
+
+function bathroomNameKey(value: string): string {
+  return normalizeBathroomName(value).toLocaleLowerCase()
+}
+
+function parseBathroomNames(value: string): { names: string[]; duplicateCount: number } {
+  const seen = new Set<string>()
+  const names: string[] = []
+  let duplicateCount = 0
+
+  for (const rawName of value.split(/[\r\n,;]+/)) {
+    const name = normalizeBathroomName(rawName)
+    if (!name) continue
+
+    const key = bathroomNameKey(name)
+    if (seen.has(key)) {
+      duplicateCount += 1
+      continue
+    }
+
+    seen.add(key)
+    names.push(name)
+  }
+
+  return { names, duplicateCount }
+}
+
 export function CleaningPage({ workspace, query }: CleaningPageProps) {
   const [view, setView] = useState<CleaningView>('logs')
   const [cleaningEditorOpen, setCleaningEditorOpen] = useState(false)
   const [bathroomEditorOpen, setBathroomEditorOpen] = useState(false)
+  const [bathroomBulkOpen, setBathroomBulkOpen] = useState(false)
   const [lockEditorOpen, setLockEditorOpen] = useState(false)
   const [editingCleaning, setEditingCleaning] = useState<CleaningEntry | null>(null)
   const [editingBathroom, setEditingBathroom] = useState<BathroomCleaningEntry | null>(null)
@@ -94,12 +129,8 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
     [query, workspace.data.gokiLockEntries],
   )
 
-  const addLabel = view === 'logs'
-    ? 'Add cleaning note'
-    : view === 'bathrooms'
-      ? 'Add bathroom'
-      : 'Add Goki lock'
-  const addIcon = view === 'bathrooms' ? Bath : view === 'locks' ? KeyRound : Plus
+  const addLabel = view === 'logs' ? 'Add cleaning note' : 'Add Goki lock'
+  const addIcon = view === 'locks' ? KeyRound : Plus
 
   function openNew() {
     if (view === 'logs') {
@@ -120,7 +151,20 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
         eyebrow="Property operations"
         title="Cleaning registers"
         description={<p>Keep the regular cleaning log, deep-clean every bathroom by property, and maintain Goki lock changes room by room.</p>}
-        actions={<Button leadingIcon={addIcon} onClick={openNew}>{addLabel}</Button>}
+        actions={view === 'bathrooms' ? (
+          <>
+            <Button
+              variant="secondary"
+              leadingIcon={ListPlus}
+              onClick={() => setBathroomBulkOpen(true)}
+            >
+              Add list
+            </Button>
+            <Button leadingIcon={Bath} onClick={openNew}>Add bathroom</Button>
+          </>
+        ) : (
+          <Button leadingIcon={addIcon} onClick={openNew}>{addLabel}</Button>
+        )}
       />
 
       <div className="cleaning-tabs">
@@ -149,7 +193,7 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
         <BathroomRegister
           entries={bathrooms}
           query={query}
-          onNew={openNew}
+          onNew={() => setBathroomBulkOpen(true)}
           onEdit={(entry) => {
             setEditingBathroom(entry)
             setBathroomEditorOpen(true)
@@ -186,6 +230,16 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
         onSave={(values) => {
           if (editingBathroom) workspace.updateBathroomCleaningEntry(editingBathroom.id, values)
           else workspace.addBathroomCleaningEntry(values)
+        }}
+      />
+      <BathroomBulkModal
+        open={bathroomBulkOpen}
+        existingEntries={workspace.data.bathroomCleaningEntries}
+        onClose={() => setBathroomBulkOpen(false)}
+        onSave={(property, bathroomNames) => {
+          workspace.addBathroomCleaningEntries(
+            bathroomNames.map((bathroomName) => ({ property, bathroomName })),
+          )
         }}
       />
       <GokiLockEditorModal
@@ -292,7 +346,9 @@ function BathroomRegister({
               <div className="register-row__detail"><small>Deep cleaning date</small><DateValue value={entry.cleaningDate} /></div>
               <div className="register-row__detail"><small>Cleaner</small><span>{entry.cleanerName || 'Not recorded'}</span></div>
               <div className="register-row__actions">
-                <IconButton label={`Edit ${entry.bathroomName || 'bathroom'}`} icon={Edit3} variant="quiet" size="sm" onClick={() => onEdit(entry)} />
+                <Button size="sm" variant="quiet" leadingIcon={Edit3} onClick={() => onEdit(entry)}>
+                  Fill details
+                </Button>
                 <IconButton label={`Delete ${entry.bathroomName || 'bathroom'}`} icon={Trash2} variant="danger" size="sm" onClick={() => { if (window.confirm('Delete this bathroom from the register?')) onDelete(entry.id) }} />
               </div>
             </article>
@@ -461,12 +517,236 @@ function BathroomEditorModal({ open, entry, onClose, onSave }: { open: boolean; 
   return (
     <Modal open={open} onClose={onClose} title={entry ? 'Edit bathroom' : 'Add bathroom'} description="Track every bathroom or ensuite and its latest deep cleaning." footer={<><Button variant="quiet" onClick={onClose}>Cancel</Button><Button type="submit" form="bathroom-form" leadingIcon={Bath}>Save bathroom</Button></>}>
       <form id="bathroom-form" className="form-grid" onSubmit={(event: FormEvent) => { event.preventDefault(); onSave({ property, bathroomName: bathroomName.trim(), deepCleaningState, cleaningDate: cleaningDate || null, cleanerName: cleanerName.trim(), notes: notes.trim() }); onClose() }}>
-        <TextField label="Bathroom / ensuite" placeholder="e.g. Allen 13 or Ensuite Allen 3" value={bathroomName} required autoFocus fieldClassName="form-grid__full" onChange={(event) => setBathroomName(event.target.value)} />
+        <TextField label="Bathroom / ensuite" placeholder="e.g. Allen 13 or Ensuite Allen 3" value={bathroomName} maxLength={MAX_BATHROOM_NAME_LENGTH} required autoFocus fieldClassName="form-grid__full" onChange={(event) => setBathroomName(event.target.value)} />
         <SelectField label="Property" value={property} options={propertyChoices} onChange={(event) => setProperty(event.target.value as Property)} />
         <SelectField label="Deep cleaned?" value={deepCleaningState} options={BATHROOM_CLEANING_STATE_OPTIONS} onChange={(event) => setDeepCleaningState(event.target.value as BathroomCleaningState)} />
         <TextField label="Deep cleaning date" type="date" value={cleaningDate} onChange={(event) => setCleaningDate(event.target.value)} />
         <TextField label="Cleaner name" placeholder="e.g. Sobit" value={cleanerName} onChange={(event) => setCleanerName(event.target.value)} />
         <TextareaField label="Notes" placeholder="Access, repairs, condition, or any important detail…" value={notes} rows={5} fieldClassName="form-grid__full" onChange={(event) => setNotes(event.target.value)} />
+      </form>
+    </Modal>
+  )
+}
+
+interface BathroomBulkModalProps {
+  open: boolean
+  existingEntries: BathroomCleaningEntry[]
+  onClose: () => void
+  onSave: (property: Property, bathroomNames: string[]) => void
+}
+
+function BathroomBulkModal({
+  open,
+  existingEntries,
+  onClose,
+  onSave,
+}: BathroomBulkModalProps) {
+  const [property, setProperty] = useState<Property>('allen')
+  const [namesText, setNamesText] = useState('')
+  const [prefix, setPrefix] = useState('Allen')
+  const [startNumber, setStartNumber] = useState('1')
+  const [endNumber, setEndNumber] = useState('25')
+  const [generatorError, setGeneratorError] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setProperty('allen')
+    setNamesText('')
+    setPrefix('Allen')
+    setStartNumber('1')
+    setEndNumber('25')
+    setGeneratorError('')
+    setSubmitted(false)
+  }, [open])
+
+  const parsedNames = useMemo(() => parseBathroomNames(namesText), [namesText])
+  const existingNameKeys = useMemo(
+    () => new Set(
+      existingEntries
+        .filter((entry) => entry.property === property)
+        .map((entry) => bathroomNameKey(entry.bathroomName)),
+    ),
+    [existingEntries, property],
+  )
+  const newNames = useMemo(
+    () => parsedNames.names.filter((name) => !existingNameKeys.has(bathroomNameKey(name))),
+    [existingNameKeys, parsedNames.names],
+  )
+  const existingDuplicateCount = parsedNames.names.length - newNames.length
+  const tooManyNames = newNames.length > MAX_BULK_BATHROOMS
+  const overlongName = newNames.find((name) => name.length > MAX_BATHROOM_NAME_LENGTH)
+  let namesError: string | undefined
+  if (tooManyNames) {
+    namesError = `Add up to ${MAX_BULK_BATHROOMS} new bathrooms at a time.`
+  } else if (overlongName) {
+    const truncatedName = `${overlongName.slice(0, 32)}${overlongName.length > 32 ? '…' : ''}`
+    namesError = `“${truncatedName}” is too long. Keep each name under ${MAX_BATHROOM_NAME_LENGTH} characters.`
+  } else if (submitted && newNames.length === 0) {
+    namesError = parsedNames.names.length
+      ? 'Every name in this list already exists for the selected property.'
+      : 'Add at least one bathroom name or number.'
+  }
+
+  function appendNumberedNames() {
+    if (!startNumber.trim() || !endNumber.trim()) {
+      setGeneratorError('Enter both a starting and ending number.')
+      return
+    }
+    const start = Number(startNumber)
+    const end = Number(endNumber)
+    if (
+      !Number.isInteger(start)
+      || !Number.isInteger(end)
+      || start < 0
+      || end > 9999
+      || end < start
+    ) {
+      setGeneratorError('Use whole numbers, with the ending number after the starting number.')
+      return
+    }
+
+    const count = end - start + 1
+    if (count > MAX_BULK_BATHROOMS) {
+      setGeneratorError(`Generate up to ${MAX_BULK_BATHROOMS} names at a time.`)
+      return
+    }
+
+    const cleanPrefix = normalizeBathroomName(prefix)
+    const generatedNames = Array.from(
+      { length: count },
+      (_, index) => [cleanPrefix, start + index].filter(Boolean).join(' '),
+    )
+    setNamesText((current) =>
+      [current.trim(), generatedNames.join('\n')].filter(Boolean).join('\n'),
+    )
+    setGeneratorError('')
+    setSubmitted(false)
+  }
+
+  function submitBulkBathrooms(event: FormEvent) {
+    event.preventDefault()
+    setSubmitted(true)
+    if (!newNames.length || tooManyNames || overlongName) return
+    onSave(property, newNames)
+    onClose()
+  }
+
+  const duplicateCount = parsedNames.duplicateCount + existingDuplicateCount
+  const previewNames = newNames.slice(0, 12)
+  const saveLabel = newNames.length
+    ? `Add ${newNames.length} ${newNames.length === 1 ? 'bathroom' : 'bathrooms'}`
+    : 'Add bathrooms'
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      className="bathroom-bulk-dialog"
+      title="Add a bathroom list"
+      description="Create a full property register now, then fill each bathroom's cleaning details as the work happens."
+      footer={(
+        <>
+          <Button variant="quiet" onClick={onClose}>Cancel</Button>
+          <Button
+            type="submit"
+            form="bathroom-bulk-form"
+            leadingIcon={ListPlus}
+            disabled={!newNames.length || tooManyNames || Boolean(overlongName)}
+          >
+            {saveLabel}
+          </Button>
+        </>
+      )}
+    >
+      <form
+        id="bathroom-bulk-form"
+        className="form-grid bathroom-bulk-form"
+        onSubmit={submitBulkBathrooms}
+      >
+        <SelectField
+          label="Property"
+          value={property}
+          options={propertyChoices}
+          fieldClassName="form-grid__full"
+          onChange={(event) => {
+            const nextProperty = event.target.value as Property
+            setProperty(nextProperty)
+            if (!namesText.trim()) setPrefix(propertyLabel(nextProperty))
+            setSubmitted(false)
+          }}
+        />
+
+        <section className="bathroom-generator form-grid__full" aria-labelledby="bathroom-generator-title">
+          <div className="bathroom-generator__heading">
+            <div>
+              <h3 id="bathroom-generator-title">Quick numbered list</h3>
+              <p>For example, generate Allen 1 through Allen 25.</p>
+            </div>
+            <Button type="button" size="sm" variant="secondary" onClick={appendNumberedNames}>
+              Add generated names
+            </Button>
+          </div>
+          <div className="bathroom-generator__fields">
+            <TextField
+              label="Name before number"
+              placeholder="e.g. Allen or Ensuite Allen"
+              value={prefix}
+              onChange={(event) => setPrefix(event.target.value)}
+            />
+            <TextField
+              label="From"
+              type="number"
+              min="0"
+              max="9999"
+              value={startNumber}
+              onChange={(event) => setStartNumber(event.target.value)}
+            />
+            <TextField
+              label="To"
+              type="number"
+              min="0"
+              max="9999"
+              value={endNumber}
+              onChange={(event) => setEndNumber(event.target.value)}
+            />
+          </div>
+          {generatorError ? <p className="bathroom-generator__error" role="alert">{generatorError}</p> : null}
+        </section>
+
+        <TextareaField
+          label="Bathroom / ensuite names or numbers"
+          hint="One per line. You can also paste names separated by commas or semicolons."
+          placeholder={'Allen 1\nAllen 2\nEnsuite Allen 3'}
+          value={namesText}
+          rows={9}
+          required
+          data-autofocus
+          error={namesError}
+          fieldClassName="form-grid__full"
+          onChange={(event) => {
+            setNamesText(event.target.value)
+            setSubmitted(false)
+          }}
+        />
+
+        <div className="bathroom-bulk-preview form-grid__full" aria-live="polite">
+          <div className="bathroom-bulk-preview__heading">
+            <strong>{newNames.length} new {newNames.length === 1 ? 'bathroom' : 'bathrooms'} ready</strong>
+            <span>{propertyLabel(property)}</span>
+          </div>
+          {duplicateCount ? (
+            <p>{duplicateCount} duplicate {duplicateCount === 1 ? 'name is' : 'names are'} skipped automatically.</p>
+          ) : (
+            <p>New entries start as “Not deep cleaned” with empty details.</p>
+          )}
+          {previewNames.length ? (
+            <ul className="bathroom-bulk-preview__names" aria-label="Bathrooms ready to add">
+              {previewNames.map((name) => <li key={bathroomNameKey(name)}>{name}</li>)}
+              {newNames.length > previewNames.length ? <li>+{newNames.length - previewNames.length} more</li> : null}
+            </ul>
+          ) : null}
+        </div>
       </form>
     </Modal>
   )

@@ -38,7 +38,9 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
   or an inclusive date range and surfaces them above the relevant daily work.
 - **Cleaning Log** records property notes, prior cleans, and upcoming schedules.
 - **Bathroom Register** keeps a per-property list of bathrooms and ensuites,
-  their deep-clean status, cleaning date, cleaner, and notes.
+  their deep-clean status, cleaning date, cleaner, and notes. Bulk entry can
+  paste a list or generate numbered names such as Allen 1 through Allen 25 in
+  one atomic save, while existing entries are preserved.
 - **Goki Lock Register** keeps a per-property room list with a clear
   changed/not-changed state, change date, and notes.
 - **General Rules** provides an autosaving operational knowledge base.

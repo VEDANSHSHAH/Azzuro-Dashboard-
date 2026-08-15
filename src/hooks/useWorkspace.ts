@@ -107,6 +107,9 @@ export interface WorkspaceApi {
   updateCleaningEntry: (id: string, patch: UpdateCleaningEntryInput) => void
   deleteCleaningEntry: (id: string) => void
   addBathroomCleaningEntry: (input?: CreateBathroomCleaningEntryInput) => BathroomCleaningEntry
+  addBathroomCleaningEntries: (
+    inputs: CreateBathroomCleaningEntryInput[],
+  ) => BathroomCleaningEntry[]
   updateBathroomCleaningEntry: (id: string, patch: UpdateBathroomCleaningEntryInput) => void
   deleteBathroomCleaningEntry: (id: string) => void
   addGokiLockEntry: (input?: CreateGokiLockEntryInput) => GokiLockEntry
@@ -897,27 +900,36 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     [updateData],
   )
 
-  const addBathroomCleaningEntry = useCallback(
-    (input: CreateBathroomCleaningEntryInput = {}): BathroomCleaningEntry => {
+  const addBathroomCleaningEntries = useCallback(
+    (inputs: CreateBathroomCleaningEntryInput[]): BathroomCleaningEntry[] => {
+      if (!inputs.length) return []
+
       const createdAt = timestamp()
-      const entry: BathroomCleaningEntry = {
+      const entries = inputs.map<BathroomCleaningEntry>((input) => ({
         id: createId('bathroom'),
         property: input.property ?? 'allen',
-        bathroomName: input.bathroomName ?? '',
+        bathroomName: input.bathroomName?.trim() ?? '',
         deepCleaningState: input.deepCleaningState ?? 'not-deep-cleaned',
         cleaningDate: nullableDate(input.cleaningDate ?? null),
-        cleanerName: input.cleanerName ?? '',
-        notes: input.notes ?? '',
+        cleanerName: input.cleanerName?.trim() ?? '',
+        notes: input.notes?.trim() ?? '',
         createdAt,
         updatedAt: createdAt,
-      }
+      }))
+
       updateData((current) => ({
         ...current,
-        bathroomCleaningEntries: [entry, ...current.bathroomCleaningEntries],
+        bathroomCleaningEntries: [...entries, ...current.bathroomCleaningEntries],
       }))
-      return entry
+      return entries
     },
     [updateData],
+  )
+
+  const addBathroomCleaningEntry = useCallback(
+    (input: CreateBathroomCleaningEntryInput = {}): BathroomCleaningEntry =>
+      addBathroomCleaningEntries([input])[0],
+    [addBathroomCleaningEntries],
   )
 
   const updateBathroomCleaningEntry = useCallback(
@@ -1159,6 +1171,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     updateCleaningEntry,
     deleteCleaningEntry,
     addBathroomCleaningEntry,
+    addBathroomCleaningEntries,
     updateBathroomCleaningEntry,
     deleteBathroomCleaningEntry,
     addGokiLockEntry,
