@@ -149,7 +149,9 @@ export function CallEditorModal({
       title="Edit call"
       description={
         call
-          ? `${format(fromISODate(call.date), 'd MMMM yyyy')} · Keep the discussion and its outcomes together.`
+          ? call.date
+            ? `${format(fromISODate(call.date), 'd MMMM yyyy')} · Keep the discussion and its outcomes together.`
+            : 'No day assigned yet · Keep the discussion and its outcomes together.'
           : undefined
       }
       className="call-editor-dialog"

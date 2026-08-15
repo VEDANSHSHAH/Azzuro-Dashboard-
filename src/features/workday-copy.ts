@@ -64,7 +64,9 @@ export function formatWorkdayForClipboard({
     tasks.forEach((task, index) => {
       const kind = task.kind === 'call' ? 'CALL' : 'TASK'
       lines.push(`${index + 1}. [${kind} · ${statusLabel(task.status)}] ${task.title.trim() || `Untitled ${task.kind}`}`)
-      lines.push(`   Added on: ${format(fromISODate(task.date), 'd MMMM yyyy')}`)
+      lines.push(task.date
+        ? `   Added on: ${format(fromISODate(task.date), 'd MMMM yyyy')}`
+        : '   Added on: No day assigned')
       if (task.scheduledFor && task.scheduledFor !== task.date) {
         lines.push(`   Also scheduled for: ${format(fromISODate(task.scheduledFor), 'd MMMM yyyy')}`)
       }

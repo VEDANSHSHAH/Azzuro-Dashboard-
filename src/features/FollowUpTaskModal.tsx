@@ -10,6 +10,7 @@ import {
 } from '../components'
 import {
   fromISODate,
+  toISODate,
   PROPERTY_OPTIONS,
   TASK_STATUS_OPTIONS,
   type CreateTaskInput,
@@ -60,7 +61,7 @@ export function FollowUpTaskModal({
     setTitle(initialTitle)
     setDescription(initialDescription)
     setStatusNote('')
-    setDate(parentTask.date)
+    setDate(parentTask.date ?? toISODate())
     setProperty(parentTask.property)
     setStatus('scheduled')
     setAssignedTo('')
@@ -134,7 +135,7 @@ export function FollowUpTaskModal({
               </strong>
               <span className="follow-up-link__meta">
                 {propertyName(parentTask.property)} ·{' '}
-                {format(fromISODate(parentTask.date), 'd MMM yyyy')}
+                {parentTask.date ? format(fromISODate(parentTask.date), 'd MMM yyyy') : 'No day assigned'}
               </span>
             </div>
           </aside>

@@ -13,14 +13,18 @@ import { normalizeTaskParentId } from '../domain/taskChains'
 import { isTaskForDate } from '../domain/taskDates'
 import type {
   AppData,
+  BathroomCleaningEntry,
   CleaningEntry,
+  CreateBathroomCleaningEntryInput,
   CreateCleaningEntryInput,
+  CreateGokiLockEntryInput,
   CreateLinkInput,
   CreateNoteInput,
   CreateReminderInput,
   CreateRuleNoteInput,
   CreateTaskInput,
   ISODate,
+  GokiLockEntry,
   LinkEntry,
   Note,
   Reminder,
@@ -28,6 +32,8 @@ import type {
   Task,
   TaskStatus,
   UpdateCleaningEntryInput,
+  UpdateBathroomCleaningEntryInput,
+  UpdateGokiLockEntryInput,
   UpdateLinkInput,
   UpdateNoteInput,
   UpdateReminderInput,
@@ -100,6 +106,12 @@ export interface WorkspaceApi {
   addCleaningEntry: (input?: CreateCleaningEntryInput) => CleaningEntry
   updateCleaningEntry: (id: string, patch: UpdateCleaningEntryInput) => void
   deleteCleaningEntry: (id: string) => void
+  addBathroomCleaningEntry: (input?: CreateBathroomCleaningEntryInput) => BathroomCleaningEntry
+  updateBathroomCleaningEntry: (id: string, patch: UpdateBathroomCleaningEntryInput) => void
+  deleteBathroomCleaningEntry: (id: string) => void
+  addGokiLockEntry: (input?: CreateGokiLockEntryInput) => GokiLockEntry
+  updateGokiLockEntry: (id: string, patch: UpdateGokiLockEntryInput) => void
+  deleteGokiLockEntry: (id: string) => void
   addRuleNote: (input?: CreateRuleNoteInput) => RuleNote
   updateRuleNote: (id: string, patch: UpdateRuleNoteInput) => void
   deleteRuleNote: (id: string) => void
@@ -497,7 +509,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
       const task: Task = {
         id,
         kind,
-        date: normalizeISODate(input.date, selectedDate),
+        date: input.date === null ? null : normalizeISODate(input.date, selectedDate),
         scheduledFor: nullableDate(input.scheduledFor ?? null),
         title: input.title ?? '',
         description: input.description ?? '',
@@ -576,7 +588,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
       const convertedTask: Task = {
         id,
         kind: 'task',
-        date: normalizeISODate(input.date, call.date),
+        date: input.date === null ? null : normalizeISODate(input.date, call.date ?? selectedDate),
         scheduledFor: nullableDate(input.scheduledFor ?? null),
         title: input.title ?? point.text,
         description: input.description ?? '',
@@ -654,7 +666,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
             date:
               patch.date === undefined
                 ? task.date
-                : normalizeISODate(patch.date, task.date),
+                : nullableDate(patch.date),
             scheduledFor:
               patch.scheduledFor === undefined
                 ? task.scheduledFor
@@ -728,7 +740,13 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
 
   const shiftTask = useCallback(
     (id: string, date: ISODate): void => {
-      updateTask(id, { scheduledFor: normalizeISODate(date) })
+      const task = dataRef.current.tasks.find((candidate) => candidate.id === id)
+      updateTask(
+        id,
+        task?.date === null
+          ? { date: normalizeISODate(date) }
+          : { scheduledFor: normalizeISODate(date) },
+      )
     },
     [updateTask],
   )
@@ -874,6 +892,117 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
       updateData((current) => ({
         ...current,
         cleaningEntries: current.cleaningEntries.filter((entry) => entry.id !== id),
+      }))
+    },
+    [updateData],
+  )
+
+  const addBathroomCleaningEntry = useCallback(
+    (input: CreateBathroomCleaningEntryInput = {}): BathroomCleaningEntry => {
+      const createdAt = timestamp()
+      const entry: BathroomCleaningEntry = {
+        id: createId('bathroom'),
+        property: input.property ?? 'allen',
+        bathroomName: input.bathroomName ?? '',
+        deepCleaningState: input.deepCleaningState ?? 'not-deep-cleaned',
+        cleaningDate: nullableDate(input.cleaningDate ?? null),
+        cleanerName: input.cleanerName ?? '',
+        notes: input.notes ?? '',
+        createdAt,
+        updatedAt: createdAt,
+      }
+      updateData((current) => ({
+        ...current,
+        bathroomCleaningEntries: [entry, ...current.bathroomCleaningEntries],
+      }))
+      return entry
+    },
+    [updateData],
+  )
+
+  const updateBathroomCleaningEntry = useCallback(
+    (id: string, patch: UpdateBathroomCleaningEntryInput): void => {
+      const updatedAt = timestamp()
+      updateData((current) => ({
+        ...current,
+        bathroomCleaningEntries: current.bathroomCleaningEntries.map((entry) =>
+          entry.id === id
+            ? {
+                ...entry,
+                ...patch,
+                cleaningDate:
+                  patch.cleaningDate === undefined
+                    ? entry.cleaningDate
+                    : nullableDate(patch.cleaningDate),
+                updatedAt,
+              }
+            : entry,
+        ),
+      }))
+    },
+    [updateData],
+  )
+
+  const deleteBathroomCleaningEntry = useCallback(
+    (id: string): void => {
+      updateData((current) => ({
+        ...current,
+        bathroomCleaningEntries: current.bathroomCleaningEntries.filter((entry) => entry.id !== id),
+      }))
+    },
+    [updateData],
+  )
+
+  const addGokiLockEntry = useCallback(
+    (input: CreateGokiLockEntryInput = {}): GokiLockEntry => {
+      const createdAt = timestamp()
+      const entry: GokiLockEntry = {
+        id: createId('goki-lock'),
+        property: input.property ?? 'allen',
+        roomName: input.roomName ?? '',
+        lockChanged: input.lockChanged ?? false,
+        changedDate: nullableDate(input.changedDate ?? null),
+        notes: input.notes ?? '',
+        createdAt,
+        updatedAt: createdAt,
+      }
+      updateData((current) => ({
+        ...current,
+        gokiLockEntries: [entry, ...current.gokiLockEntries],
+      }))
+      return entry
+    },
+    [updateData],
+  )
+
+  const updateGokiLockEntry = useCallback(
+    (id: string, patch: UpdateGokiLockEntryInput): void => {
+      const updatedAt = timestamp()
+      updateData((current) => ({
+        ...current,
+        gokiLockEntries: current.gokiLockEntries.map((entry) =>
+          entry.id === id
+            ? {
+                ...entry,
+                ...patch,
+                changedDate:
+                  patch.changedDate === undefined
+                    ? entry.changedDate
+                    : nullableDate(patch.changedDate),
+                updatedAt,
+              }
+            : entry,
+        ),
+      }))
+    },
+    [updateData],
+  )
+
+  const deleteGokiLockEntry = useCallback(
+    (id: string): void => {
+      updateData((current) => ({
+        ...current,
+        gokiLockEntries: current.gokiLockEntries.filter((entry) => entry.id !== id),
       }))
     },
     [updateData],
@@ -1029,6 +1158,12 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     addCleaningEntry,
     updateCleaningEntry,
     deleteCleaningEntry,
+    addBathroomCleaningEntry,
+    updateBathroomCleaningEntry,
+    deleteBathroomCleaningEntry,
+    addGokiLockEntry,
+    updateGokiLockEntry,
+    deleteGokiLockEntry,
     addRuleNote,
     updateRuleNote,
     deleteRuleNote,

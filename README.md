@@ -15,6 +15,9 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
   call, finding, outcome point, scheduled date, and assignment handoff detail.
 - **Scheduled for** keeps a task on the day it was added while also showing it
   on an optional future scheduled date; remove that scheduled date anytime.
+- **Task Inbox** keeps work without a day in one focused sidebar page, where it
+  can be assigned to Day-wise later. The page also provides one-click access to
+  every unfinished task and call.
 - **Assigned to** keeps task ownership visible on every task card.
 - **Assignment handoff** adds a nested step for each person: mark whether you
   still need to give them the task or it has already been given, with a clear
@@ -34,6 +37,10 @@ daily notes, property tasks, cleaning logs, general rules, calls, and links.
 - **Things to Remember** schedules visible reminders for one date, every day,
   or an inclusive date range and surfaces them above the relevant daily work.
 - **Cleaning Log** records property notes, prior cleans, and upcoming schedules.
+- **Bathroom Register** keeps a per-property list of bathrooms and ensuites,
+  their deep-clean status, cleaning date, cleaner, and notes.
+- **Goki Lock Register** keeps a per-property room list with a clear
+  changed/not-changed state, change date, and notes.
 - **General Rules** provides an autosaving operational knowledge base.
 - **Links & Credentials** syncs website metadata to your private cloud
   workspace while keeping passwords only in Windows Credential Manager.

@@ -5,9 +5,9 @@ export function isTaskForDate(task: Task, date: ISODate): boolean {
   return task.date === date || task.scheduledFor === date
 }
 
-/** The creation date plus the optional scheduled date, without duplicates. */
+/** The optional Day-wise date plus a scheduled date, without duplicates. */
 export function getTaskDates(task: Task): ISODate[] {
-  return task.scheduledFor && task.scheduledFor !== task.date
-    ? [task.date, task.scheduledFor]
-    : [task.date]
+  return [task.date, task.scheduledFor].filter(
+    (value, index, all): value is ISODate => Boolean(value) && all.indexOf(value) === index,
+  )
 }

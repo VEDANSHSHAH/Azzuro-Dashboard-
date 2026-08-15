@@ -40,17 +40,24 @@ function matchesQuery(task: Task, query: string): boolean {
     .includes(normalizedQuery)
 }
 
-function groupTasksByDate(tasks: readonly Task[]): Array<[ISODate, Task[]]> {
-  const tasksByDate = new Map<ISODate, Task[]>()
+type AssignmentDate = ISODate | 'inbox'
+
+function groupTasksByDate(tasks: readonly Task[]): Array<[AssignmentDate, Task[]]> {
+  const tasksByDate = new Map<AssignmentDate, Task[]>()
 
   tasks.forEach((task) => {
-    getTaskDates(task).forEach((date) => {
+    const dates = getTaskDates(task)
+    ;(dates.length ? dates : ['inbox' as const]).forEach((date) => {
       const existing = tasksByDate.get(date) ?? []
       tasksByDate.set(date, [...existing, task])
     })
   })
 
-  return [...tasksByDate.entries()].sort(([left], [right]) => right.localeCompare(left))
+  return [...tasksByDate.entries()].sort(([left], [right]) => {
+    if (left === 'inbox') return -1
+    if (right === 'inbox') return 1
+    return right.localeCompare(left)
+  })
 }
 
 interface PersonColumnProps {
@@ -100,7 +107,7 @@ function PersonColumn({
               <section className="assignee-date-group" key={date}>
                 <div className="assignee-date-group__heading">
                   <CalendarDays aria-hidden="true" />
-                  <h3>{format(fromISODate(date), 'EEEE, d MMMM yyyy')}</h3>
+                  <h3>{date === 'inbox' ? 'No day assigned' : format(fromISODate(date), 'EEEE, d MMMM yyyy')}</h3>
                   <span>{dateTasks.length}</span>
                 </div>
                 <div className="task-list">

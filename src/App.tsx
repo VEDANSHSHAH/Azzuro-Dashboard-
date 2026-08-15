@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Sparkles,
   UsersRound,
+  ListTodo,
 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
@@ -38,12 +39,14 @@ import { RulesPage } from './pages/RulesPage'
 import { TodayPage } from './pages/TodayPage'
 import { ThingsToRememberPage } from './pages/ThingsToRememberPage'
 import { FarabiSobitPage } from './pages/FarabiSobitPage'
+import { TaskInboxPage } from './pages/TaskInboxPage'
 
-type PageId = 'today' | 'day' | 'reminders' | 'cleaning' | 'rules' | 'links' | 'assignments'
+type PageId = 'today' | 'day' | 'tasks' | 'reminders' | 'cleaning' | 'rules' | 'links' | 'assignments'
 
 const navigation: readonly NavigationItem[] = [
   { id: 'today', label: 'Today’s Work', icon: CalendarCheck2 },
   { id: 'day', label: 'Day-wise', icon: CalendarRange },
+  { id: 'tasks', label: 'Task Inbox', icon: ListTodo },
   { id: 'reminders', label: 'Things to Remember', icon: BellRing },
   { id: 'cleaning', label: 'Cleaning', icon: Sparkles },
   { id: 'rules', label: 'General Rules', icon: BookOpenText },
@@ -54,6 +57,7 @@ const navigation: readonly NavigationItem[] = [
 const pageSearchLabels: Record<PageId, string> = {
   today: 'Search today’s work',
   day: 'Search this day',
+  tasks: 'Search tasks',
   reminders: 'Search things to remember',
   cleaning: 'Search cleaning logs',
   rules: 'Search general rules',
@@ -168,7 +172,12 @@ function App() {
     }
   }
 
-  const workModalDate = activePage === 'today' ? workspace.today : workspace.selectedDate
+  const workModalDate =
+    activePage === 'today'
+      ? workspace.today
+      : activePage === 'day'
+        ? workspace.selectedDate
+        : undefined
 
   if (workspace.accessState !== 'ready') {
     if (workspace.accessState === 'loading') {
@@ -269,6 +278,20 @@ function App() {
               showNotDoneOnly={showNotDoneOnly}
               onToggleNotDone={() => setShowNotDoneOnly((current) => !current)}
               onCopyAll={handleCopyAll}
+            />
+          ) : null}
+          {activePage === 'tasks' ? (
+            <TaskInboxPage
+              tasks={workspace.data.tasks}
+              query={query}
+              onAddTask={() => openWorkItem('task')}
+              onEditTask={handleEditTask}
+              onCreateFollowUp={handleCreateFollowUp}
+              onConvertCallPoint={handleConvertCallPoint}
+              onShiftTask={handleShiftTask}
+              onDeleteTask={workspace.deleteTask}
+              onStatusChange={workspace.changeTaskStatus}
+              onAssignmentStateChange={handleAssignmentStateChange}
             />
           ) : null}
           {activePage === 'reminders' ? <ThingsToRememberPage workspace={workspace} query={query} /> : null}

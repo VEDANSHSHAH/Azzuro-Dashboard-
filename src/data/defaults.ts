@@ -9,13 +9,17 @@ import { normalizeAssignmentState } from '../domain/assignments'
 import { repairTaskParentLinks } from '../domain/taskChains'
 import {
   CLEANING_STATUSES,
+  BATHROOM_CLEANING_STATES,
   PROPERTIES,
   REMINDER_SCHEDULE_MODES,
   TASK_STATUSES,
   type AppData,
+  type BathroomCleaningEntry,
+  type BathroomCleaningState,
   type CleaningEntry,
   type CleaningStatus,
   type LinkEntry,
+  type GokiLockEntry,
   type Note,
   type Property,
   type Reminder,
@@ -68,6 +72,12 @@ function cleaningStatus(value: unknown): CleaningStatus {
     : 'scheduled'
 }
 
+function bathroomCleaningState(value: unknown): BathroomCleaningState {
+  return BATHROOM_CLEANING_STATES.includes(value as BathroomCleaningState)
+    ? (value as BathroomCleaningState)
+    : 'not-deep-cleaned'
+}
+
 function reminderScheduleMode(value: unknown): ReminderScheduleMode {
   return REMINDER_SCHEDULE_MODES.includes(value as ReminderScheduleMode)
     ? (value as ReminderScheduleMode)
@@ -89,6 +99,8 @@ export function createEmptyAppData(): AppData {
     tasks: [],
     reminders: [],
     cleaningEntries: [],
+    bathroomCleaningEntries: [],
+    gokiLockEntries: [],
     ruleNotes: [],
     links: [],
     updatedAt: now(),
@@ -119,7 +131,7 @@ function normalizeTask(value: unknown, fallbackTimestamp: string): Task | null {
   return {
     id,
     kind,
-    date: date(value.date, toISODate()),
+    date: nullableDate(value.date),
     scheduledFor: nullableDate(value.scheduledFor),
     title: text(value.title),
     description: text(value.description),
@@ -174,6 +186,43 @@ function normalizeCleaningEntry(
     nextCleaningDate: nullableDate(value.nextCleaningDate),
     notes: text(value.notes),
     status: cleaningStatus(value.status),
+    createdAt: timestamp(value.createdAt, fallbackTimestamp),
+    updatedAt: timestamp(value.updatedAt, fallbackTimestamp),
+  }
+}
+
+function normalizeBathroomCleaningEntry(
+  value: unknown,
+  fallbackTimestamp: string,
+): BathroomCleaningEntry | null {
+  if (!isRecord(value)) return null
+
+  return {
+    id: text(value.id) || createId('bathroom'),
+    property: property(value.property),
+    bathroomName: text(value.bathroomName),
+    deepCleaningState: bathroomCleaningState(value.deepCleaningState),
+    cleaningDate: nullableDate(value.cleaningDate),
+    cleanerName: text(value.cleanerName),
+    notes: text(value.notes),
+    createdAt: timestamp(value.createdAt, fallbackTimestamp),
+    updatedAt: timestamp(value.updatedAt, fallbackTimestamp),
+  }
+}
+
+function normalizeGokiLockEntry(
+  value: unknown,
+  fallbackTimestamp: string,
+): GokiLockEntry | null {
+  if (!isRecord(value)) return null
+
+  return {
+    id: text(value.id) || createId('goki-lock'),
+    property: property(value.property),
+    roomName: text(value.roomName),
+    lockChanged: value.lockChanged === true,
+    changedDate: nullableDate(value.changedDate),
+    notes: text(value.notes),
     createdAt: timestamp(value.createdAt, fallbackTimestamp),
     updatedAt: timestamp(value.updatedAt, fallbackTimestamp),
   }
@@ -239,6 +288,16 @@ export function normalizeAppData(value: unknown): AppData {
     cleaningEntries: normalizeList(
       value.cleaningEntries,
       normalizeCleaningEntry,
+      fallbackTimestamp,
+    ),
+    bathroomCleaningEntries: normalizeList(
+      value.bathroomCleaningEntries,
+      normalizeBathroomCleaningEntry,
+      fallbackTimestamp,
+    ),
+    gokiLockEntries: normalizeList(
+      value.gokiLockEntries,
+      normalizeGokiLockEntry,
       fallbackTimestamp,
     ),
     ruleNotes: normalizeList(value.ruleNotes, normalizeRuleNote, fallbackTimestamp),

@@ -331,7 +331,7 @@ export function TaskCard({
                 <small>Follow-up to</small>
                 <strong>{parentTask.title || 'Untitled task'}</strong>
               </span>
-              <time>{format(fromISODate(parentTask.date), 'd MMM')}</time>
+              <time>{parentTask.date ? format(fromISODate(parentTask.date), 'd MMM') : 'Inbox'}</time>
             </button>
           ) : null}
           {followUpTasks.length ? (
@@ -349,7 +349,7 @@ export function TaskCard({
                     onClick={() => onOpenLinkedTask?.(followUp)}
                   >
                     <span>{followUp.title || 'Untitled task'}</span>
-                    <time>{format(fromISODate(followUp.date), 'd MMM')}</time>
+                    <time>{followUp.date ? format(fromISODate(followUp.date), 'd MMM') : 'Inbox'}</time>
                   </button>
                 ))}
                 {followUpTasks.length > 3 ? (
@@ -386,7 +386,7 @@ export function TaskCard({
               Scheduled {format(fromISODate(task.scheduledFor), 'd MMM')}
             </span>
           ) : null}
-          {showDate ? <span className="task-card__date">Added {task.date}</span> : null}
+          {showDate ? <span className="task-card__date">{task.date ? `Added ${task.date}` : 'No day assigned'}</span> : null}
         </div>
         <label className="status-select">
           <span className="sr-only">{isCall ? 'Call status' : 'Task status'}</span>

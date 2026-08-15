@@ -50,7 +50,7 @@ function createCallPoint(text = ''): CallPoint {
 interface WorkItemModalProps {
   open: boolean
   kind: WorkItemKind
-  date: ISODate
+  date?: ISODate
   onClose: () => void
   onCreateNote: (input: CreateNoteInput) => void
   onCreateTask: (input: CreateTaskInput) => void
@@ -70,6 +70,7 @@ export function WorkItemModal({
   const [property, setProperty] = useState<Property>('all')
   const [status, setStatus] = useState<TaskStatus>('untouched')
   const [scheduledFor, setScheduledFor] = useState<ISODate>('')
+  const [inboxDate, setInboxDate] = useState<ISODate>('')
   const [assignedTo, setAssignedTo] = useState('')
   const [assignmentState, setAssignmentState] =
     useState<TaskAssignmentState>('needs-giving')
@@ -84,6 +85,7 @@ export function WorkItemModal({
     setProperty('all')
     setStatus(kind === 'call' ? 'scheduled' : 'untouched')
     setScheduledFor('')
+    setInboxDate('')
     setAssignedTo('')
     setAssignmentState('needs-giving')
     setCallOutcome('')
@@ -99,8 +101,8 @@ export function WorkItemModal({
     if (kind === 'task') {
       if (!title.trim()) return
       onCreateTask({
-        date,
-        scheduledFor: scheduledFor || null,
+        date: (date ?? inboxDate) || null,
+        scheduledFor: date ? scheduledFor || null : null,
         title: title.trim(),
         description: content,
         statusNote: statusNote.trim(),
@@ -134,7 +136,11 @@ export function WorkItemModal({
 
   const titleByKind =
     kind === 'note' ? 'New note' : kind === 'call' ? 'New call' : 'New task'
-  const description = `For ${format(fromISODate(date), 'EEEE, d MMMM yyyy')}`
+  const description = date
+    ? `For ${format(fromISODate(date), 'EEEE, d MMMM yyyy')}`
+    : kind === 'task'
+      ? 'No day assigned · this task will stay in your Task Inbox until you schedule it.'
+      : undefined
 
   return (
     <Modal
@@ -199,14 +205,25 @@ export function WorkItemModal({
                 options={kind === 'call' ? CALL_STATUS_OPTIONS : TASK_STATUS_OPTIONS}
                 onChange={(event) => setStatus(event.target.value as TaskStatus)}
               />
-              <TextField
-                label="Scheduled for"
-                type="date"
-                value={scheduledFor}
-                hint="Optional. This item stays on today and also appears on the scheduled day."
-                fieldClassName="form-grid__full"
-                onChange={(event) => setScheduledFor(event.target.value)}
-              />
+              {date ? (
+                <TextField
+                  label="Scheduled for"
+                  type="date"
+                  value={scheduledFor}
+                  hint="Optional. This item stays on today and also appears on the scheduled day."
+                  fieldClassName="form-grid__full"
+                  onChange={(event) => setScheduledFor(event.target.value)}
+                />
+              ) : kind === 'task' ? (
+                <TextField
+                  label="Assign to day"
+                  type="date"
+                  value={inboxDate}
+                  hint="Optional. Leave empty to keep this task in the Task Inbox."
+                  fieldClassName="form-grid__full"
+                  onChange={(event) => setInboxDate(event.target.value)}
+                />
+              ) : null}
               <AssignmentHandoffFields
                 assignedTo={assignedTo}
                 assignmentState={assignmentState}
@@ -329,12 +346,17 @@ export function TaskEditorModal({
     setFindings(task.findings)
     setProperty(task.property)
     setStatus(task.status)
-    setScheduledFor(task.scheduledFor ?? '')
+    setScheduledFor(task.date ? task.scheduledFor ?? '' : '')
     setAssignedTo(task.assignedTo)
     setAssignmentState(task.assignmentState ?? 'needs-giving')
   }, [task])
 
   function createPatch(): TaskEditorPatch {
+    const schedulingPatch =
+      task?.date === null
+        ? { date: scheduledFor || null, scheduledFor: null }
+        : { scheduledFor: scheduledFor || null }
+
     return {
       title: title.trim(),
       description,
@@ -342,7 +364,7 @@ export function TaskEditorModal({
       findings: findings.trim(),
       property,
       status,
-      scheduledFor: scheduledFor || null,
+      ...schedulingPatch,
       assignedTo: assignedTo.trim(),
       assignmentState,
     }
@@ -362,9 +384,11 @@ export function TaskEditorModal({
       title="Edit task"
       description={
         task
-          ? task.scheduledFor
-            ? `Added on ${format(fromISODate(task.date), 'd MMMM yyyy')} · Also scheduled for ${format(fromISODate(task.scheduledFor), 'd MMMM yyyy')}`
-            : `Added on ${format(fromISODate(task.date), 'd MMMM yyyy')}`
+          ? task.date
+            ? task.scheduledFor
+              ? `Added on ${format(fromISODate(task.date), 'd MMMM yyyy')} · Also scheduled for ${format(fromISODate(task.scheduledFor), 'd MMMM yyyy')}`
+              : `Added on ${format(fromISODate(task.date), 'd MMMM yyyy')}`
+            : 'No day assigned · This task stays in your Task Inbox until you schedule it.'
           : undefined
       }
       footer={(
@@ -427,15 +451,19 @@ export function TaskEditorModal({
         />
         <div className="scheduled-date-field form-grid__full">
           <TextField
-            label="Scheduled for"
+            label={task?.date ? 'Scheduled for' : 'Assign to day'}
             type="date"
             value={scheduledFor}
-            hint="Optional. The task stays on its added day and also appears on this date."
+            hint={
+              task?.date
+                ? 'Optional. The task stays on its added day and also appears on this date.'
+                : 'Optional. Leave empty to keep this task in the Task Inbox.'
+            }
             onChange={(event) => setScheduledFor(event.target.value)}
           />
           {scheduledFor ? (
             <Button type="button" size="sm" variant="quiet" onClick={() => setScheduledFor('')}>
-              Remove scheduled date
+              {task?.date ? 'Remove scheduled date' : 'Keep in Task Inbox'}
             </Button>
           ) : null}
         </div>
@@ -469,7 +497,7 @@ export function ShiftTaskModal({ task, onClose, onShift }: ShiftTaskModalProps) 
   const [date, setDate] = useState<ISODate>('')
 
   useEffect(() => {
-    if (task) setDate(task.scheduledFor ?? task.date)
+    if (task) setDate(task.scheduledFor ?? task.date ?? '')
   }, [task])
 
   function submit(event: FormEvent) {
@@ -484,7 +512,13 @@ export function ShiftTaskModal({ task, onClose, onShift }: ShiftTaskModalProps) 
       open={task !== null}
       onClose={onClose}
       title="Schedule this task"
-      description={task ? 'It will remain on the day you added it and appear on this scheduled day too.' : undefined}
+      description={
+        task
+          ? task.date
+            ? 'It will remain on the day you added it and appear on this scheduled day too.'
+            : 'Choose a day to move this inbox task into your Day-wise workspace.'
+          : undefined
+      }
       footer={(
         <>
           <Button variant="quiet" onClick={onClose}>Cancel</Button>

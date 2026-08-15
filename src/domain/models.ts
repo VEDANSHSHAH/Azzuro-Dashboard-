@@ -48,6 +48,22 @@ export const CLEANING_STATUS_OPTIONS: ReadonlyArray<{
   { value: 'overdue', label: 'Overdue' },
 ]
 
+export const BATHROOM_CLEANING_STATES = [
+  'not-deep-cleaned',
+  'scheduled',
+  'deep-cleaned',
+] as const
+export type BathroomCleaningState = (typeof BATHROOM_CLEANING_STATES)[number]
+
+export const BATHROOM_CLEANING_STATE_OPTIONS: ReadonlyArray<{
+  value: BathroomCleaningState
+  label: string
+}> = [
+  { value: 'not-deep-cleaned', label: 'Not deep cleaned' },
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'deep-cleaned', label: 'Deep cleaned' },
+]
+
 export const REMINDER_SCHEDULE_MODES = ['specific', 'everyday', 'range'] as const
 export type ReminderScheduleMode = (typeof REMINDER_SCHEDULE_MODES)[number]
 
@@ -87,8 +103,8 @@ export interface Note {
 export interface Task {
   id: string
   kind: TaskKind
-  /** The Day-wise date where this task was first added. */
-  date: ISODate
+  /** The Day-wise date where this task was first added, or null while in the inbox. */
+  date: ISODate | null
   /** An optional second Day-wise date where the task should also appear. */
   scheduledFor: ISODate | null
   title: string
@@ -132,6 +148,29 @@ export interface CleaningEntry {
   updatedAt: ISODateTime
 }
 
+export interface BathroomCleaningEntry {
+  id: string
+  property: Property
+  bathroomName: string
+  deepCleaningState: BathroomCleaningState
+  cleaningDate: ISODate | null
+  cleanerName: string
+  notes: string
+  createdAt: ISODateTime
+  updatedAt: ISODateTime
+}
+
+export interface GokiLockEntry {
+  id: string
+  property: Property
+  roomName: string
+  lockChanged: boolean
+  changedDate: ISODate | null
+  notes: string
+  createdAt: ISODateTime
+  updatedAt: ISODateTime
+}
+
 export interface RuleNote {
   id: string
   title: string
@@ -160,6 +199,8 @@ export interface AppData {
   tasks: Task[]
   reminders: Reminder[]
   cleaningEntries: CleaningEntry[]
+  bathroomCleaningEntries: BathroomCleaningEntry[]
+  gokiLockEntries: GokiLockEntry[]
   ruleNotes: RuleNote[]
   links: LinkEntry[]
   updatedAt: ISODateTime
@@ -178,7 +219,8 @@ export type UpdateNoteInput = Partial<
 
 export interface CreateTaskInput {
   kind?: TaskKind
-  date?: ISODate
+  /** Pass null to keep a task in the unscheduled Task Inbox. */
+  date?: ISODate | null
   scheduledFor?: ISODate | null
   title?: string
   description?: string
@@ -242,6 +284,39 @@ export interface CreateCleaningEntryInput {
   notes?: string
   status?: CleaningStatus
 }
+
+export interface CreateBathroomCleaningEntryInput {
+  property?: Property
+  bathroomName?: string
+  deepCleaningState?: BathroomCleaningState
+  cleaningDate?: ISODate | null
+  cleanerName?: string
+  notes?: string
+}
+
+export type UpdateBathroomCleaningEntryInput = Partial<
+  Pick<
+    BathroomCleaningEntry,
+    | 'property'
+    | 'bathroomName'
+    | 'deepCleaningState'
+    | 'cleaningDate'
+    | 'cleanerName'
+    | 'notes'
+  >
+>
+
+export interface CreateGokiLockEntryInput {
+  property?: Property
+  roomName?: string
+  lockChanged?: boolean
+  changedDate?: ISODate | null
+  notes?: string
+}
+
+export type UpdateGokiLockEntryInput = Partial<
+  Pick<GokiLockEntry, 'property' | 'roomName' | 'lockChanged' | 'changedDate' | 'notes'>
+>
 
 export type UpdateCleaningEntryInput = Partial<
   Pick<
