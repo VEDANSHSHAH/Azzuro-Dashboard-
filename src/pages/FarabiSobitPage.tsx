@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
-import { CalendarDays, UsersRound } from 'lucide-react'
-import { EmptyState, PageHeader } from '../components'
+import { CalendarDays, Plus, UsersRound } from 'lucide-react'
+import { Button, EmptyState, PageHeader } from '../components'
 import {
   getTaskDates,
   fromISODate,
@@ -12,7 +12,7 @@ import {
 } from '../domain'
 import { TaskCard } from '../features/work-items'
 
-const TEAM_MEMBERS = ['Farabi', 'Sobit'] as const
+const TEAM_MEMBERS = ['Farabi', 'Sobit', 'Vincent'] as const
 type TeamMember = (typeof TEAM_MEMBERS)[number]
 
 interface FarabiSobitPageProps {
@@ -25,6 +25,7 @@ interface FarabiSobitPageProps {
   onDeleteTask: (id: string) => void
   onStatusChange: (id: string, status: TaskStatus) => void
   onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
+  onAddTaskForMember: (member: TeamMember) => void
 }
 
 function isAssignedTo(task: Task, member: TeamMember): boolean {
@@ -72,6 +73,7 @@ interface PersonColumnProps {
   onDeleteTask: (id: string) => void
   onStatusChange: (id: string, status: TaskStatus) => void
   onAssignmentStateChange: (id: string, state: TaskAssignmentState) => void
+  onAddTask?: () => void
 }
 
 function PersonColumn({
@@ -86,6 +88,7 @@ function PersonColumn({
   onDeleteTask,
   onStatusChange,
   onAssignmentStateChange,
+  onAddTask,
 }: PersonColumnProps) {
   const assignedTasks = tasks.filter((task) => isAssignedTo(task, member) && matchesQuery(task, query))
   const groups = groupTasksByDate(assignedTasks)
@@ -98,7 +101,11 @@ function PersonColumn({
           <h2 className="section-card__title">{member}</h2>
           <span className="section-card__count">{assignedTasks.length}</span>
         </div>
-        <span className="assignee-column__label">Assigned work</span>
+        {onAddTask ? (
+          <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
+        ) : (
+          <span className="assignee-column__label">Assigned work</span>
+        )}
       </div>
       <div className="section-card__body">
         {groups.length ? (
@@ -141,6 +148,7 @@ function PersonColumn({
                 ? 'Try another search phrase.'
                 : `Assign a task or call to ${member} and it will appear here automatically.`
             }
+            action={onAddTask ? <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task for {member}</Button> : undefined}
           />
         )}
       </div>
@@ -158,9 +166,11 @@ export function FarabiSobitPage({
   onDeleteTask,
   onStatusChange,
   onAssignmentStateChange,
+  onAddTaskForMember,
 }: FarabiSobitPageProps) {
   const farabiCount = tasks.filter((task) => isAssignedTo(task, 'Farabi')).length
   const sobitCount = tasks.filter((task) => isAssignedTo(task, 'Sobit')).length
+  const vincentCount = tasks.filter((task) => isAssignedTo(task, 'Vincent')).length
 
   return (
     <div className="page">
@@ -169,12 +179,12 @@ export function FarabiSobitPage({
         title="Farabi & Sobit"
         description={
           <p>
-            Every task or call assigned to Farabi or Sobit appears here automatically,
+            Every task or call assigned to Farabi, Sobit, or Vincent appears here automatically,
             grouped by its added and scheduled dates.
           </p>
         }
       />
-      <div className="assignee-board" aria-label="Tasks assigned to Farabi and Sobit">
+      <div className="assignee-board" aria-label="Tasks assigned to Farabi, Sobit, and Vincent">
         <PersonColumn
           member="Farabi"
           tasks={tasks}
@@ -201,9 +211,23 @@ export function FarabiSobitPage({
           onStatusChange={onStatusChange}
           onAssignmentStateChange={onAssignmentStateChange}
         />
+        <PersonColumn
+          member="Vincent"
+          tasks={tasks}
+          allTasks={tasks}
+          query={query}
+          onEditTask={onEditTask}
+          onCreateFollowUp={onCreateFollowUp}
+          onConvertCallPoint={onConvertCallPoint}
+          onShiftTask={onShiftTask}
+          onDeleteTask={onDeleteTask}
+          onStatusChange={onStatusChange}
+          onAssignmentStateChange={onAssignmentStateChange}
+          onAddTask={() => onAddTaskForMember('Vincent')}
+        />
       </div>
       <p className="assignee-page__summary" aria-label="Assignment totals">
-        Farabi: {farabiCount} assigned &nbsp;·&nbsp; Sobit: {sobitCount} assigned
+        Farabi: {farabiCount} assigned &nbsp;·&nbsp; Sobit: {sobitCount} assigned &nbsp;·&nbsp; Vincent: {vincentCount} assigned
       </p>
     </div>
   )

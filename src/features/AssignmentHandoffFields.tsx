@@ -27,8 +27,8 @@ export function AssignmentHandoffFields({
     <>
       <TextField
         label="Give to"
-        placeholder="e.g. Farabi, Sobit, Cleaner"
-        hint="Optional. Farabi and Sobit appear automatically on their dedicated assignment page."
+        placeholder="e.g. Farabi, Sobit, Vincent, Cleaner"
+        hint="Optional. Farabi, Sobit, and Vincent appear automatically on their dedicated assignment page."
         value={assignedTo}
         fieldClassName="form-grid__full"
         list="team-member-suggestions"
@@ -37,6 +37,7 @@ export function AssignmentHandoffFields({
       <datalist id="team-member-suggestions">
         <option value="Farabi" />
         <option value="Sobit" />
+        <option value="Vincent" />
       </datalist>
       {recipient ? (
         <div className="assignment-handoff-form form-grid__full">

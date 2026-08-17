@@ -51,6 +51,7 @@ interface WorkItemModalProps {
   open: boolean
   kind: WorkItemKind
   date?: ISODate
+  initialTask?: Pick<CreateTaskInput, 'assignedTo' | 'date'> | null
   onClose: () => void
   onCreateNote: (input: CreateNoteInput) => void
   onCreateTask: (input: CreateTaskInput) => void
@@ -60,6 +61,7 @@ export function WorkItemModal({
   open,
   kind,
   date,
+  initialTask,
   onClose,
   onCreateNote,
   onCreateTask,
@@ -86,11 +88,11 @@ export function WorkItemModal({
     setStatus(kind === 'call' ? 'scheduled' : 'untouched')
     setScheduledFor('')
     setInboxDate('')
-    setAssignedTo('')
+    setAssignedTo(initialTask?.assignedTo ?? '')
     setAssignmentState('needs-giving')
     setCallOutcome('')
     setCallPoints([])
-  }, [kind, open])
+  }, [initialTask, kind, open])
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -101,7 +103,7 @@ export function WorkItemModal({
     if (kind === 'task') {
       if (!title.trim()) return
       onCreateTask({
-        date: (date ?? inboxDate) || null,
+        date: initialTask?.date ?? ((date ?? inboxDate) || null),
         scheduledFor: date ? scheduledFor || null : null,
         title: title.trim(),
         description: content,

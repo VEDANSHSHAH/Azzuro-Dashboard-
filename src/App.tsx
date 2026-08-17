@@ -31,7 +31,13 @@ import { FollowUpTaskModal } from './features/FollowUpTaskModal'
 import { CallEditorModal } from './features/CallEditorModal'
 import { copyTextToClipboard, formatWorkdayForClipboard, type WorkdayCopyData } from './features/workday-copy'
 import { useWorkspace } from './hooks'
-import type { CallPoint, Property, Task, TaskAssignmentState } from './domain'
+import type {
+  CallPoint,
+  CreateTaskInput,
+  Property,
+  Task,
+  TaskAssignmentState,
+} from './domain'
 import { CleaningPage } from './pages/CleaningPage'
 import { DayPage } from './pages/DayPage'
 import { LinksPage } from './pages/LinksPage'
@@ -73,6 +79,9 @@ function App() {
   const [propertyFilter, setPropertyFilter] = useState<Property>('all')
   const [showNotDoneOnly, setShowNotDoneOnly] = useState(false)
   const [workItemKind, setWorkItemKind] = useState<WorkItemKind | null>(null)
+  const [workItemInitialTask, setWorkItemInitialTask] = useState<
+    Pick<CreateTaskInput, 'assignedTo' | 'date'> | null
+  >(null)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [editingCall, setEditingCall] = useState<Task | null>(null)
@@ -118,8 +127,17 @@ function App() {
     setQuery('')
   }
 
-  function openWorkItem(kind: WorkItemKind) {
+  function openWorkItem(
+    kind: WorkItemKind,
+    initialTask: Pick<CreateTaskInput, 'assignedTo' | 'date'> | null = null,
+  ) {
+    setWorkItemInitialTask(kind === 'task' ? initialTask : null)
     setWorkItemKind(kind)
+  }
+
+  function closeWorkItem() {
+    setWorkItemKind(null)
+    setWorkItemInitialTask(null)
   }
 
   function handleEditTask(task: Task) {
@@ -309,6 +327,9 @@ function App() {
               onDeleteTask={workspace.deleteTask}
               onStatusChange={workspace.changeTaskStatus}
               onAssignmentStateChange={handleAssignmentStateChange}
+              onAddTaskForMember={(member) =>
+                openWorkItem('task', { assignedTo: member, date: null })
+              }
             />
           ) : null}
         </motion.div>
@@ -318,7 +339,8 @@ function App() {
         open={workItemKind !== null}
         kind={workItemKind ?? 'task'}
         date={workModalDate}
-        onClose={() => setWorkItemKind(null)}
+        initialTask={workItemInitialTask}
+        onClose={closeWorkItem}
         onCreateNote={(input) => {
           workspace.addNote(input)
           notify('Note added', 'It is already being autosaved.')
