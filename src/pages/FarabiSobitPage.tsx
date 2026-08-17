@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { format } from 'date-fns'
-import { CalendarDays, Plus, UsersRound } from 'lucide-react'
-import { Button, EmptyState, PageHeader } from '../components'
+import { CalendarDays, ChevronDown, ChevronUp, Plus, UsersRound } from 'lucide-react'
+import { Button, EmptyState, IconButton, PageHeader } from '../components'
 import {
   getTaskDates,
   fromISODate,
@@ -90,8 +91,10 @@ function PersonColumn({
   onAssignmentStateChange,
   onAddTask,
 }: PersonColumnProps) {
+  const [isExpanded, setIsExpanded] = useState(true)
   const assignedTasks = tasks.filter((task) => isAssignedTo(task, member) && matchesQuery(task, query))
   const groups = groupTasksByDate(assignedTasks)
+  const listId = `assignee-list-${member.toLocaleLowerCase()}`
 
   return (
     <section className="section-card assignee-column">
@@ -101,57 +104,70 @@ function PersonColumn({
           <h2 className="section-card__title">{member}</h2>
           <span className="section-card__count">{assignedTasks.length}</span>
         </div>
-        {onAddTask ? (
-          <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
-        ) : (
-          <span className="assignee-column__label">Assigned work</span>
-        )}
-      </div>
-      <div className="section-card__body">
-        {groups.length ? (
-          <div className="assignee-date-groups">
-            {groups.map(([date, dateTasks]) => (
-              <section className="assignee-date-group" key={date}>
-                <div className="assignee-date-group__heading">
-                  <CalendarDays aria-hidden="true" />
-                  <h3>{date === 'inbox' ? 'No day assigned' : format(fromISODate(date), 'EEEE, d MMMM yyyy')}</h3>
-                  <span>{dateTasks.length}</span>
-                </div>
-                <div className="task-list">
-                  {dateTasks.map((task) => (
-                    <TaskCard
-                      key={`${date}-${task.id}`}
-                      task={task}
-                      allTasks={allTasks}
-                      parentTask={task.parentTaskId ? allTasks.find((candidate) => candidate.id === task.parentTaskId) ?? null : null}
-                      followUpTasks={allTasks.filter((candidate) => candidate.parentTaskId === task.id)}
-                      onEdit={() => onEditTask(task)}
-                      onCreateFollowUp={() => onCreateFollowUp(task)}
-                      onConvertCallPoint={(point) => onConvertCallPoint(task, point)}
-                      onOpenLinkedTask={onEditTask}
-                      onShift={() => onShiftTask(task)}
-                      onDelete={() => onDeleteTask(task.id)}
-                      onStatusChange={(status) => onStatusChange(task.id, status)}
-                      onAssignmentStateChange={(state) => onAssignmentStateChange(task.id, state)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={UsersRound}
-            title={query ? `No matching work for ${member}` : `Nothing assigned to ${member}`}
-            description={
-              query
-                ? 'Try another search phrase.'
-                : `Assign a task or call to ${member} and it will appear here automatically.`
-            }
-            action={onAddTask ? <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task for {member}</Button> : undefined}
+        <div className="assignee-column__actions">
+          {onAddTask ? (
+            <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task</Button>
+          ) : (
+            <span className="assignee-column__label">Assigned work</span>
+          )}
+          <IconButton
+            label={`${isExpanded ? 'Collapse' : 'Expand'} ${member}'s list`}
+            icon={isExpanded ? ChevronUp : ChevronDown}
+            variant="quiet"
+            size="sm"
+            aria-expanded={isExpanded}
+            aria-controls={listId}
+            onClick={() => setIsExpanded((expanded) => !expanded)}
           />
-        )}
+        </div>
       </div>
+      {isExpanded ? (
+        <div className="section-card__body" id={listId}>
+          {groups.length ? (
+            <div className="assignee-date-groups">
+              {groups.map(([date, dateTasks]) => (
+                <section className="assignee-date-group" key={date}>
+                  <div className="assignee-date-group__heading">
+                    <CalendarDays aria-hidden="true" />
+                    <h3>{date === 'inbox' ? 'No day assigned' : format(fromISODate(date), 'EEEE, d MMMM yyyy')}</h3>
+                    <span>{dateTasks.length}</span>
+                  </div>
+                  <div className="task-list">
+                    {dateTasks.map((task) => (
+                      <TaskCard
+                        key={`${date}-${task.id}`}
+                        task={task}
+                        allTasks={allTasks}
+                        parentTask={task.parentTaskId ? allTasks.find((candidate) => candidate.id === task.parentTaskId) ?? null : null}
+                        followUpTasks={allTasks.filter((candidate) => candidate.parentTaskId === task.id)}
+                        onEdit={() => onEditTask(task)}
+                        onCreateFollowUp={() => onCreateFollowUp(task)}
+                        onConvertCallPoint={(point) => onConvertCallPoint(task, point)}
+                        onOpenLinkedTask={onEditTask}
+                        onShift={() => onShiftTask(task)}
+                        onDelete={() => onDeleteTask(task.id)}
+                        onStatusChange={(status) => onStatusChange(task.id, status)}
+                        onAssignmentStateChange={(state) => onAssignmentStateChange(task.id, state)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={UsersRound}
+              title={query ? `No matching work for ${member}` : `Nothing assigned to ${member}`}
+              description={
+                query
+                  ? 'Try another search phrase.'
+                  : `Assign a task or call to ${member} and it will appear here automatically.`
+              }
+              action={onAddTask ? <Button size="sm" leadingIcon={Plus} onClick={onAddTask}>Add task for {member}</Button> : undefined}
+            />
+          )}
+        </div>
+      ) : null}
     </section>
   )
 }

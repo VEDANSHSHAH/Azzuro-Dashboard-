@@ -817,6 +817,13 @@ p {
   font-weight: 600;
 }
 
+.assignee-column__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .assignee-date-groups {
   display: grid;
   gap: 22px;
