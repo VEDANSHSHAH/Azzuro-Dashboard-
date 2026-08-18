@@ -113,6 +113,7 @@ export interface WorkspaceApi {
   updateBathroomCleaningEntry: (id: string, patch: UpdateBathroomCleaningEntryInput) => void
   deleteBathroomCleaningEntry: (id: string) => void
   addGokiLockEntry: (input?: CreateGokiLockEntryInput) => GokiLockEntry
+  addGokiLockEntries: (inputs: CreateGokiLockEntryInput[]) => GokiLockEntry[]
   updateGokiLockEntry: (id: string, patch: UpdateGokiLockEntryInput) => void
   deleteGokiLockEntry: (id: string) => void
   addRuleNote: (input?: CreateRuleNoteInput) => RuleNote
@@ -965,26 +966,34 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     [updateData],
   )
 
-  const addGokiLockEntry = useCallback(
-    (input: CreateGokiLockEntryInput = {}): GokiLockEntry => {
+  const addGokiLockEntries = useCallback(
+    (inputs: CreateGokiLockEntryInput[]): GokiLockEntry[] => {
+      if (!inputs.length) return []
+
       const createdAt = timestamp()
-      const entry: GokiLockEntry = {
+      const entries = inputs.map<GokiLockEntry>((input) => ({
         id: createId('goki-lock'),
         property: input.property ?? 'allen',
-        roomName: input.roomName ?? '',
+        roomName: input.roomName?.trim() ?? '',
         lockChanged: input.lockChanged ?? false,
         changedDate: nullableDate(input.changedDate ?? null),
-        notes: input.notes ?? '',
+        notes: input.notes?.trim() ?? '',
         createdAt,
         updatedAt: createdAt,
-      }
+      }))
       updateData((current) => ({
         ...current,
-        gokiLockEntries: [entry, ...current.gokiLockEntries],
+        gokiLockEntries: [...entries, ...current.gokiLockEntries],
       }))
-      return entry
+      return entries
     },
     [updateData],
+  )
+
+  const addGokiLockEntry = useCallback(
+    (input: CreateGokiLockEntryInput = {}): GokiLockEntry =>
+      addGokiLockEntries([input])[0],
+    [addGokiLockEntries],
   )
 
   const updateGokiLockEntry = useCallback(
@@ -1175,6 +1184,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     updateBathroomCleaningEntry,
     deleteBathroomCleaningEntry,
     addGokiLockEntry,
+    addGokiLockEntries,
     updateGokiLockEntry,
     deleteGokiLockEntry,
     addRuleNote,

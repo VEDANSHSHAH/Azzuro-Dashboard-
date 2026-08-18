@@ -3155,11 +3155,11 @@ p {
   background: var(--green-100);
 }
 
-.bathroom-bulk-dialog {
+.register-bulk-dialog {
   width: min(720px, 100%);
 }
 
-.bathroom-generator {
+.register-generator {
   display: grid;
   gap: 13px;
   padding: 15px;
@@ -3168,15 +3168,15 @@ p {
   background: linear-gradient(135deg, rgba(246, 235, 220, .72), rgba(255, 253, 248, .9));
 }
 
-.bathroom-generator__heading,
-.bathroom-bulk-preview__heading {
+.register-generator__heading,
+.register-bulk-preview__heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
 
-.bathroom-generator__heading h3 {
+.register-generator__heading h3 {
   margin: 0;
   color: var(--wine-900);
   font-family: 'DM Serif Display', Georgia, serif;
@@ -3184,40 +3184,40 @@ p {
   font-weight: 400;
 }
 
-.bathroom-generator__heading p,
-.bathroom-bulk-preview p {
+.register-generator__heading p,
+.register-bulk-preview p {
   margin: 3px 0 0;
   color: var(--ink-500);
   font-size: 9.5px;
   line-height: 1.45;
 }
 
-.bathroom-generator__fields {
+.register-generator__fields {
   display: grid;
   grid-template-columns: minmax(180px, 1.6fr) minmax(92px, .55fr) minmax(92px, .55fr);
   gap: 10px;
 }
 
-.bathroom-generator__error {
+.register-generator__error {
   margin: -2px 0 0;
   color: var(--red-700);
   font-size: 9.5px;
   font-weight: 650;
 }
 
-.bathroom-bulk-preview {
+.register-bulk-preview {
   padding: 13px 14px;
   border: 1px solid rgba(116, 36, 58, .14);
   border-radius: 12px;
   background: rgba(116, 36, 58, .04);
 }
 
-.bathroom-bulk-preview__heading strong {
+.register-bulk-preview__heading strong {
   color: var(--wine-900);
   font-size: 11px;
 }
 
-.bathroom-bulk-preview__heading span {
+.register-bulk-preview__heading span {
   padding: 4px 8px;
   border-radius: 99px;
   color: var(--wine-700);
@@ -3226,7 +3226,7 @@ p {
   font-weight: 700;
 }
 
-.bathroom-bulk-preview__names {
+.register-bulk-preview__names {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -3235,7 +3235,7 @@ p {
   list-style: none;
 }
 
-.bathroom-bulk-preview__names li {
+.register-bulk-preview__names li {
   padding: 4px 7px;
   border: 1px solid rgba(116, 36, 58, .1);
   border-radius: 7px;
@@ -3770,16 +3770,16 @@ p {
     grid-column: auto;
   }
 
-  .bathroom-generator__heading {
+  .register-generator__heading {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .bathroom-generator__fields {
+  .register-generator__fields {
     grid-template-columns: 1fr 1fr;
   }
 
-  .bathroom-generator__fields > .field:first-child {
+  .register-generator__fields > .field:first-child {
     grid-column: 1 / -1;
   }
 
