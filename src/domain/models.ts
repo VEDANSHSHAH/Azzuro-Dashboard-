@@ -64,7 +64,7 @@ export const BATHROOM_CLEANING_STATE_OPTIONS: ReadonlyArray<{
   { value: 'deep-cleaned', label: 'Deep cleaned' },
 ]
 
-export const REMINDER_SCHEDULE_MODES = ['specific', 'everyday', 'weekly', 'range'] as const
+export const REMINDER_SCHEDULE_MODES = ['specific', 'everyday', 'weekly', 'interval', 'range'] as const
 export type ReminderScheduleMode = (typeof REMINDER_SCHEDULE_MODES)[number]
 
 export const REMINDER_WEEKDAYS = [
@@ -99,6 +99,7 @@ export const REMINDER_SCHEDULE_MODE_OPTIONS: ReadonlyArray<{
   { value: 'specific', label: 'Specific date' },
   { value: 'everyday', label: 'Every day' },
   { value: 'weekly', label: 'Every week on selected days' },
+  { value: 'interval', label: 'Every 7 or 15 days' },
   { value: 'range', label: 'Date range' },
 ]
 
@@ -159,6 +160,8 @@ export interface Reminder {
   startDate: ISODate | null
   endDate: ISODate | null
   weekdays: ReminderWeekday[]
+  intervalDays: number | null
+  intervalStartDate: ISODate | null
   createdAt: ISODateTime
   updatedAt: ISODateTime
 }
@@ -290,6 +293,8 @@ export interface CreateReminderInput {
   startDate?: ISODate | null
   endDate?: ISODate | null
   weekdays?: ReminderWeekday[]
+  intervalDays?: number | null
+  intervalStartDate?: ISODate | null
 }
 
 export type UpdateReminderInput = Partial<
@@ -302,6 +307,8 @@ export type UpdateReminderInput = Partial<
     | 'startDate'
     | 'endDate'
     | 'weekdays'
+    | 'intervalDays'
+    | 'intervalStartDate'
   >
 >
 

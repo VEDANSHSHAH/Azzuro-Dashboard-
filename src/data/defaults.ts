@@ -6,7 +6,10 @@ import {
   repairCallPointTaskReferences,
 } from '../domain/calls'
 import { normalizeAssignmentState } from '../domain/assignments'
-import { normalizeReminderWeekdays } from '../domain/reminders'
+import {
+  normalizeReminderIntervalDays,
+  normalizeReminderWeekdays,
+} from '../domain/reminders'
 import { repairTaskParentLinks } from '../domain/taskChains'
 import {
   CLEANING_STATUSES,
@@ -169,6 +172,8 @@ function normalizeReminder(
     startDate: nullableDate(value.startDate),
     endDate: nullableDate(value.endDate),
     weekdays: normalizeReminderWeekdays(value.weekdays),
+    intervalDays: normalizeReminderIntervalDays(value.intervalDays),
+    intervalStartDate: nullableDate(value.intervalStartDate),
     createdAt: timestamp(value.createdAt, fallbackTimestamp),
     updatedAt: timestamp(value.updatedAt, fallbackTimestamp),
   }

@@ -8,7 +8,11 @@ import {
   repairCallPointsForTask,
 } from '../domain/calls'
 import { normalizeAssignmentState } from '../domain/assignments'
-import { isReminderForDate, normalizeReminderWeekdays } from '../domain/reminders'
+import {
+  isReminderForDate,
+  normalizeReminderIntervalDays,
+  normalizeReminderWeekdays,
+} from '../domain/reminders'
 import { normalizeTaskParentId } from '../domain/taskChains'
 import { isTaskForDate } from '../domain/taskDates'
 import type {
@@ -780,6 +784,8 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         startDate: nullableDate(input.startDate ?? null),
         endDate: nullableDate(input.endDate ?? null),
         weekdays: normalizeReminderWeekdays(input.weekdays),
+        intervalDays: normalizeReminderIntervalDays(input.intervalDays),
+        intervalStartDate: nullableDate(input.intervalStartDate ?? null),
         createdAt,
         updatedAt: createdAt,
       }
@@ -826,6 +832,14 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
                   patch.weekdays === undefined
                     ? reminder.weekdays
                     : normalizeReminderWeekdays(patch.weekdays),
+                intervalDays:
+                  patch.intervalDays === undefined
+                    ? reminder.intervalDays
+                    : normalizeReminderIntervalDays(patch.intervalDays),
+                intervalStartDate:
+                  patch.intervalStartDate === undefined
+                    ? reminder.intervalStartDate
+                    : nullableDate(patch.intervalStartDate),
                 updatedAt,
               }
             : reminder,

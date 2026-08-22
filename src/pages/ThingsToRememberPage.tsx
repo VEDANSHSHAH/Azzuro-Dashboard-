@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   BellPlus,
   BellRing,
+  CalendarClock,
   CalendarDays,
   CalendarCheck2,
   CalendarRange,
@@ -23,6 +24,7 @@ import {
 } from '../components'
 import {
   REMINDER_WEEKDAY_OPTIONS,
+  toISODate,
   type Reminder,
   type ReminderWeekday,
 } from '../domain'
@@ -47,19 +49,28 @@ interface ReminderValues {
   startDate: Reminder['startDate']
   endDate: Reminder['endDate']
   weekdays: Reminder['weekdays']
+  intervalDays: Reminder['intervalDays']
+  intervalStartDate: Reminder['intervalStartDate']
 }
 
 const scheduleOptions: ReadonlyArray<{ value: ScheduleMode; label: string }> = [
   { value: 'specific', label: 'A specific date' },
   { value: 'everyday', label: 'Every day' },
   { value: 'weekly', label: 'Every week on selected days' },
+  { value: 'interval', label: 'Every 7 or 15 days' },
   { value: 'range', label: 'A date range' },
 ]
+
+const intervalOptions = [
+  { value: '7', label: 'Once a week — every 7 days' },
+  { value: '15', label: 'Every 15 days' },
+] as const
 
 const scheduleIcons: Record<ScheduleMode, LucideIcon> = {
   specific: CalendarCheck2,
   everyday: Repeat2,
   weekly: CalendarDays,
+  interval: CalendarClock,
   range: CalendarRange,
 }
 
@@ -67,12 +78,14 @@ const scheduleModeNames: Record<ScheduleMode, string> = {
   specific: 'Specific date',
   everyday: 'Every day',
   weekly: 'Every week',
+  interval: 'Repeating interval',
   range: 'Date range',
 }
 
 function scheduleSortValue(reminder: Reminder): string {
   if (reminder.scheduleMode === 'everyday') return '0000-00-00'
   if (reminder.scheduleMode === 'weekly') return '0000-00-01'
+  if (reminder.scheduleMode === 'interval') return reminder.intervalStartDate ?? '9999-99-99'
   if (reminder.scheduleMode === 'specific') return reminder.specificDate ?? '9999-99-99'
   return reminder.startDate ?? '9999-99-99'
 }
@@ -123,7 +136,7 @@ export function ThingsToRememberPage({
         description={(
           <p>
             Keep the details that should stay visible on one day, every day, or
-            every week on chosen days, or throughout a date range.
+            every week on chosen days, on a 7 or 15 day cycle, or throughout a date range.
           </p>
         )}
         actions={(
@@ -250,6 +263,7 @@ interface ReminderFormErrors {
   startDate?: string
   endDate?: string
   weekdays?: string
+  intervalStartDate?: string
 }
 
 function ReminderEditorModal({
@@ -265,6 +279,8 @@ function ReminderEditorModal({
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [weekdays, setWeekdays] = useState<ReminderWeekday[]>([])
+  const [intervalDays, setIntervalDays] = useState('7')
+  const [intervalStartDate, setIntervalStartDate] = useState('')
   const [errors, setErrors] = useState<ReminderFormErrors>({})
 
   useEffect(() => {
@@ -276,6 +292,8 @@ function ReminderEditorModal({
     setStartDate(reminder?.startDate ?? '')
     setEndDate(reminder?.endDate ?? '')
     setWeekdays(reminder?.weekdays ?? [])
+    setIntervalDays(String(reminder?.intervalDays === 15 ? 15 : 7))
+    setIntervalStartDate(reminder?.intervalStartDate ?? toISODate())
     setErrors({})
   }, [open, reminder])
 
@@ -297,6 +315,9 @@ function ReminderEditorModal({
     if (scheduleMode === 'weekly' && weekdays.length === 0) {
       nextErrors.weekdays = 'Choose at least one day of the week.'
     }
+    if (scheduleMode === 'interval' && !intervalStartDate) {
+      nextErrors.intervalStartDate = 'Choose the first date in this cycle.'
+    }
 
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors)
@@ -311,6 +332,8 @@ function ReminderEditorModal({
       startDate: (scheduleMode === 'range' ? startDate : null) as Reminder['startDate'],
       endDate: (scheduleMode === 'range' ? endDate : null) as Reminder['endDate'],
       weekdays: scheduleMode === 'weekly' ? weekdays : [],
+      intervalDays: scheduleMode === 'interval' ? Number(intervalDays) : null,
+      intervalStartDate: (scheduleMode === 'interval' ? intervalStartDate : null) as Reminder['intervalStartDate'],
     })
     onClose()
   }
@@ -416,6 +439,37 @@ function ReminderEditorModal({
             </div>
             {errors.weekdays ? <p className="reminder-weekdays__error" role="alert">{errors.weekdays}</p> : null}
           </fieldset>
+        ) : null}
+
+        {scheduleMode === 'interval' ? (
+          <>
+            <div className="reminder-form__schedule-note form-grid__full">
+              <CalendarClock aria-hidden="true" />
+              <div>
+                <strong>Repeating interval</strong>
+                <span>Choose the first reminder date; it will appear again every 7 or 15 days.</span>
+              </div>
+            </div>
+            <SelectField
+              label="Repeat interval"
+              value={intervalDays}
+              options={intervalOptions}
+              onChange={(event) => setIntervalDays(event.target.value)}
+            />
+            <TextField
+              label="First reminder date"
+              type="date"
+              value={intervalStartDate}
+              required
+              error={errors.intervalStartDate}
+              onChange={(event) => {
+                setIntervalStartDate(event.target.value)
+                if (errors.intervalStartDate) {
+                  setErrors((current) => ({ ...current, intervalStartDate: undefined }))
+                }
+              }}
+            />
+          </>
         ) : null}
 
         {scheduleMode === 'specific' ? (

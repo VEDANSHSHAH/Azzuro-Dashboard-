@@ -27,6 +27,22 @@ export function normalizeReminderWeekdays(value: unknown): ReminderWeekday[] {
   return REMINDER_WEEKDAYS.filter((day) => selectedDays.has(day))
 }
 
+/** Accepts safe day intervals while discarding malformed persisted values. */
+export function normalizeReminderIntervalDays(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 365
+    ? value
+    : null
+}
+
+function calendarDayNumber(date: ISODate): number {
+  const localDate = fromISODate(date)
+  return Date.UTC(
+    localDate.getFullYear(),
+    localDate.getMonth(),
+    localDate.getDate(),
+  ) / 86_400_000
+}
+
 /** Returns whether a reminder is active on the supplied local calendar date. */
 export function isReminderForDate(reminder: Reminder, date: ISODate): boolean {
   switch (reminder.scheduleMode) {
@@ -36,6 +52,13 @@ export function isReminderForDate(reminder: Reminder, date: ISODate): boolean {
       return normalizeReminderWeekdays(reminder.weekdays).includes(
         weekdayByCalendarDay[fromISODate(date).getDay()],
       )
+    case 'interval': {
+      const intervalDays = normalizeReminderIntervalDays(reminder.intervalDays)
+      if (!intervalDays || !reminder.intervalStartDate) return false
+
+      const elapsedDays = calendarDayNumber(date) - calendarDayNumber(reminder.intervalStartDate)
+      return elapsedDays >= 0 && elapsedDays % intervalDays === 0
+    }
     case 'specific':
       return reminder.specificDate === date
     case 'range':

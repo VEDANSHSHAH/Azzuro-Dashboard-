@@ -35,6 +35,10 @@ export function formatReminderSchedule(reminder: Reminder): string {
         .map((option) => option.label)
       return labels.length ? `Every ${joinLabels(labels)}` : 'Weekly schedule not set'
     }
+    case 'interval':
+      return reminder.intervalDays && reminder.intervalStartDate
+        ? `Every ${reminder.intervalDays} days from ${formatDate(reminder.intervalStartDate)}`
+        : 'Repeating interval not set'
     case 'specific':
       return reminder.specificDate
         ? formatDate(reminder.specificDate)
@@ -54,8 +58,9 @@ export function reminderScheduleSearchText(reminder: Reminder): string {
 const bannerPriority: Record<Reminder['scheduleMode'], number> = {
   specific: 0,
   range: 1,
-  weekly: 2,
-  everyday: 3,
+  interval: 2,
+  weekly: 3,
+  everyday: 4,
 }
 
 /** One-off reminders are shown before ranges and recurring reminders. */
