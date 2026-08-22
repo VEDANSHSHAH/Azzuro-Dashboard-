@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   BellPlus,
   BellRing,
+  CalendarDays,
   CalendarCheck2,
   CalendarRange,
   Edit3,
@@ -20,7 +21,11 @@ import {
   TextareaField,
   TextField,
 } from '../components'
-import type { Reminder } from '../domain'
+import {
+  REMINDER_WEEKDAY_OPTIONS,
+  type Reminder,
+  type ReminderWeekday,
+} from '../domain'
 import type { WorkspaceApi } from '../hooks'
 import {
   formatReminderSchedule,
@@ -41,28 +46,33 @@ interface ReminderValues {
   specificDate: Reminder['specificDate']
   startDate: Reminder['startDate']
   endDate: Reminder['endDate']
+  weekdays: Reminder['weekdays']
 }
 
 const scheduleOptions: ReadonlyArray<{ value: ScheduleMode; label: string }> = [
   { value: 'specific', label: 'A specific date' },
   { value: 'everyday', label: 'Every day' },
+  { value: 'weekly', label: 'Every week on selected days' },
   { value: 'range', label: 'A date range' },
 ]
 
 const scheduleIcons: Record<ScheduleMode, LucideIcon> = {
   specific: CalendarCheck2,
   everyday: Repeat2,
+  weekly: CalendarDays,
   range: CalendarRange,
 }
 
 const scheduleModeNames: Record<ScheduleMode, string> = {
   specific: 'Specific date',
   everyday: 'Every day',
+  weekly: 'Every week',
   range: 'Date range',
 }
 
 function scheduleSortValue(reminder: Reminder): string {
   if (reminder.scheduleMode === 'everyday') return '0000-00-00'
+  if (reminder.scheduleMode === 'weekly') return '0000-00-01'
   if (reminder.scheduleMode === 'specific') return reminder.specificDate ?? '9999-99-99'
   return reminder.startDate ?? '9999-99-99'
 }
@@ -113,7 +123,7 @@ export function ThingsToRememberPage({
         description={(
           <p>
             Keep the details that should stay visible on one day, every day, or
-            throughout a date range.
+            every week on chosen days, or throughout a date range.
           </p>
         )}
         actions={(
@@ -239,6 +249,7 @@ interface ReminderFormErrors {
   specificDate?: string
   startDate?: string
   endDate?: string
+  weekdays?: string
 }
 
 function ReminderEditorModal({
@@ -253,6 +264,7 @@ function ReminderEditorModal({
   const [specificDate, setSpecificDate] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [weekdays, setWeekdays] = useState<ReminderWeekday[]>([])
   const [errors, setErrors] = useState<ReminderFormErrors>({})
 
   useEffect(() => {
@@ -263,6 +275,7 @@ function ReminderEditorModal({
     setSpecificDate(reminder?.specificDate ?? '')
     setStartDate(reminder?.startDate ?? '')
     setEndDate(reminder?.endDate ?? '')
+    setWeekdays(reminder?.weekdays ?? [])
     setErrors({})
   }, [open, reminder])
 
@@ -281,6 +294,9 @@ function ReminderEditorModal({
         nextErrors.endDate = 'The end date must be on or after the start date.'
       }
     }
+    if (scheduleMode === 'weekly' && weekdays.length === 0) {
+      nextErrors.weekdays = 'Choose at least one day of the week.'
+    }
 
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors)
@@ -294,6 +310,7 @@ function ReminderEditorModal({
       specificDate: (scheduleMode === 'specific' ? specificDate : null) as Reminder['specificDate'],
       startDate: (scheduleMode === 'range' ? startDate : null) as Reminder['startDate'],
       endDate: (scheduleMode === 'range' ? endDate : null) as Reminder['endDate'],
+      weekdays: scheduleMode === 'weekly' ? weekdays : [],
     })
     onClose()
   }
@@ -358,6 +375,47 @@ function ReminderEditorModal({
               <span>This reminder will stay at the top of Today and each Day-wise view.</span>
             </div>
           </div>
+        ) : null}
+
+        {scheduleMode === 'weekly' ? (
+          <fieldset className="reminder-weekdays form-grid__full">
+            <legend className="reminder-weekdays__legend">Repeat every week</legend>
+            <div className="reminder-weekdays__heading">
+              <div>
+                <p>Choose the days this reminder should appear and trigger when you open the app.</p>
+              </div>
+              <CalendarDays aria-hidden="true" />
+            </div>
+            <div className="reminder-weekdays__choices">
+              {REMINDER_WEEKDAY_OPTIONS.map((option) => {
+                const isSelected = weekdays.includes(option.value)
+                return (
+                  <label className="reminder-weekdays__choice" key={option.value}>
+                    <input
+                      type="checkbox"
+                      aria-label={option.label}
+                      checked={isSelected}
+                      onChange={() => {
+                        setWeekdays((current) => {
+                          const selected = new Set(current)
+                          if (selected.has(option.value)) selected.delete(option.value)
+                          else selected.add(option.value)
+                          return REMINDER_WEEKDAY_OPTIONS
+                            .map((day) => day.value)
+                            .filter((day) => selected.has(day))
+                        })
+                        if (errors.weekdays) {
+                          setErrors((current) => ({ ...current, weekdays: undefined }))
+                        }
+                      }}
+                    />
+                    <span title={option.label}>{option.shortLabel}</span>
+                  </label>
+                )
+              })}
+            </div>
+            {errors.weekdays ? <p className="reminder-weekdays__error" role="alert">{errors.weekdays}</p> : null}
+          </fieldset>
         ) : null}
 
         {scheduleMode === 'specific' ? (

@@ -64,8 +64,33 @@ export const BATHROOM_CLEANING_STATE_OPTIONS: ReadonlyArray<{
   { value: 'deep-cleaned', label: 'Deep cleaned' },
 ]
 
-export const REMINDER_SCHEDULE_MODES = ['specific', 'everyday', 'range'] as const
+export const REMINDER_SCHEDULE_MODES = ['specific', 'everyday', 'weekly', 'range'] as const
 export type ReminderScheduleMode = (typeof REMINDER_SCHEDULE_MODES)[number]
+
+export const REMINDER_WEEKDAYS = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+] as const
+export type ReminderWeekday = (typeof REMINDER_WEEKDAYS)[number]
+
+export const REMINDER_WEEKDAY_OPTIONS: ReadonlyArray<{
+  value: ReminderWeekday
+  label: string
+  shortLabel: string
+}> = [
+  { value: 'monday', label: 'Monday', shortLabel: 'Mon' },
+  { value: 'tuesday', label: 'Tuesday', shortLabel: 'Tue' },
+  { value: 'wednesday', label: 'Wednesday', shortLabel: 'Wed' },
+  { value: 'thursday', label: 'Thursday', shortLabel: 'Thu' },
+  { value: 'friday', label: 'Friday', shortLabel: 'Fri' },
+  { value: 'saturday', label: 'Saturday', shortLabel: 'Sat' },
+  { value: 'sunday', label: 'Sunday', shortLabel: 'Sun' },
+]
 
 export const REMINDER_SCHEDULE_MODE_OPTIONS: ReadonlyArray<{
   value: ReminderScheduleMode
@@ -73,6 +98,7 @@ export const REMINDER_SCHEDULE_MODE_OPTIONS: ReadonlyArray<{
 }> = [
   { value: 'specific', label: 'Specific date' },
   { value: 'everyday', label: 'Every day' },
+  { value: 'weekly', label: 'Every week on selected days' },
   { value: 'range', label: 'Date range' },
 ]
 
@@ -132,6 +158,7 @@ export interface Reminder {
   specificDate: ISODate | null
   startDate: ISODate | null
   endDate: ISODate | null
+  weekdays: ReminderWeekday[]
   createdAt: ISODateTime
   updatedAt: ISODateTime
 }
@@ -262,6 +289,7 @@ export interface CreateReminderInput {
   specificDate?: ISODate | null
   startDate?: ISODate | null
   endDate?: ISODate | null
+  weekdays?: ReminderWeekday[]
 }
 
 export type UpdateReminderInput = Partial<
@@ -273,6 +301,7 @@ export type UpdateReminderInput = Partial<
     | 'specificDate'
     | 'startDate'
     | 'endDate'
+    | 'weekdays'
   >
 >
 

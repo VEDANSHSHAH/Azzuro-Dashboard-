@@ -29,6 +29,7 @@ import {
 } from './features/work-modals'
 import { FollowUpTaskModal } from './features/FollowUpTaskModal'
 import { CallEditorModal } from './features/CallEditorModal'
+import { TodayReminderModal } from './features/TodayReminderModal'
 import { copyTextToClipboard, formatWorkdayForClipboard, type WorkdayCopyData } from './features/workday-copy'
 import { useWorkspace } from './hooks'
 import type {
@@ -92,7 +93,9 @@ function App() {
   } | null>(null)
   const [shiftingTask, setShiftingTask] = useState<Task | null>(null)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const [todayReminderOpen, setTodayReminderOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const startupRemindersEvaluated = useRef(false)
 
   useEffect(() => {
     function focusSearch(event: KeyboardEvent) {
@@ -105,6 +108,16 @@ function App() {
     window.addEventListener('keydown', focusSearch)
     return () => window.removeEventListener('keydown', focusSearch)
   }, [])
+
+  useEffect(() => {
+    if (workspace.accessState !== 'ready' || startupRemindersEvaluated.current) return
+
+    startupRemindersEvaluated.current = true
+    if (!workspace.todayReminders.length) return
+
+    const timer = window.setTimeout(() => setTodayReminderOpen(true), 260)
+    return () => window.clearTimeout(timer)
+  }, [workspace.accessState, workspace.todayReminders.length])
 
   const notify = useCallback((title: string, description?: string, tone: ToastMessage['tone'] = 'success') => {
     const id = crypto.randomUUID()
@@ -427,6 +440,16 @@ function App() {
         onDeleteTask={workspace.deleteTask}
         onStatusChange={workspace.changeTaskStatus}
         onAssignmentStateChange={handleAssignmentStateChange}
+      />
+      <TodayReminderModal
+        open={todayReminderOpen}
+        date={workspace.today}
+        reminders={workspace.todayReminders}
+        onClose={() => setTodayReminderOpen(false)}
+        onViewAll={() => {
+          setTodayReminderOpen(false)
+          navigate('reminders')
+        }}
       />
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </AppShell>

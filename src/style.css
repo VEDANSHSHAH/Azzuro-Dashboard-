@@ -2068,6 +2068,222 @@ p {
 .reminder-form__schedule-note strong { font-size: 10.5px; }
 .reminder-form__schedule-note span { color: var(--ink-500); font-size: 9.5px; }
 
+.reminder-weekdays {
+  min-width: 0;
+  margin: 0;
+  padding: 13px;
+  border: 1px solid rgba(179, 129, 73, .24);
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(246, 235, 220, .76), rgba(255, 253, 248, .85));
+}
+
+.reminder-weekdays__legend {
+  padding: 0 4px;
+  color: var(--ink-800);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.reminder-weekdays__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reminder-weekdays__heading p {
+  margin: 0;
+  color: var(--ink-500);
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+.reminder-weekdays__heading > svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--brass-600);
+}
+
+.reminder-weekdays__choices {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.reminder-weekdays__choice {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.reminder-weekdays__choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.reminder-weekdays__choice span {
+  min-height: 31px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+  border: 1px solid rgba(116, 36, 58, .16);
+  border-radius: 8px;
+  color: var(--ink-500);
+  background: rgba(255, 253, 248, .76);
+  font-size: 9px;
+  font-weight: 700;
+  transition: background 150ms var(--ease), border 150ms var(--ease), color 150ms var(--ease), transform 150ms var(--ease);
+}
+
+.reminder-weekdays__choice:hover span {
+  border-color: rgba(116, 36, 58, .34);
+  transform: translateY(-1px);
+}
+
+.reminder-weekdays__choice input:checked + span {
+  border-color: var(--wine-700);
+  color: white;
+  background: var(--wine-700);
+  box-shadow: 0 5px 13px rgba(91, 25, 42, .16);
+}
+
+.reminder-weekdays__choice input:focus-visible + span {
+  outline: 2px solid var(--brass-500);
+  outline-offset: 2px;
+}
+
+.reminder-weekdays__error {
+  margin: 9px 0 0;
+  color: var(--red-700);
+  font-size: 9.5px;
+  font-weight: 650;
+}
+
+.today-reminder-dialog {
+  width: min(610px, 100%);
+}
+
+.today-reminder-dialog__content {
+  display: grid;
+  gap: 13px;
+}
+
+.today-reminder-dialog__welcome {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid rgba(179, 129, 73, .24);
+  border-radius: 13px;
+  background: linear-gradient(125deg, rgba(246, 235, 220, .88), rgba(255, 253, 248, .84));
+}
+
+.today-reminder-dialog__mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  color: var(--wine-700);
+  background: rgba(255, 253, 248, .8);
+  box-shadow: var(--shadow-xs);
+}
+
+.today-reminder-dialog__mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.today-reminder-dialog__welcome div {
+  min-width: 0;
+  flex: 1;
+}
+
+.today-reminder-dialog__welcome p {
+  margin: 0 0 2px;
+  color: var(--brass-600);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.today-reminder-dialog__welcome h3 {
+  margin: 0;
+  color: var(--wine-900);
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.today-reminder-dialog__welcome > svg {
+  width: 17px;
+  height: 17px;
+  color: var(--brass-600);
+}
+
+.today-reminder-dialog__list {
+  display: grid;
+  gap: 8px;
+  max-height: min(44vh, 340px);
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.today-reminder-dialog__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--cream-50);
+}
+
+.today-reminder-dialog__item-icon {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--brass-600);
+  background: var(--brass-100);
+}
+
+.today-reminder-dialog__item-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.today-reminder-dialog__item-copy {
+  min-width: 0;
+}
+
+.today-reminder-dialog__item-copy strong {
+  display: block;
+  color: var(--ink-900);
+  font-size: 11.5px;
+}
+
+.today-reminder-dialog__item-copy p {
+  margin: 4px 0 0;
+  color: var(--ink-500);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.today-reminder-dialog__item-copy span {
+  display: block;
+  margin-top: 6px;
+  color: var(--brass-600);
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
 .reminder-card__schedule {
   display: flex;
   align-items: center;
