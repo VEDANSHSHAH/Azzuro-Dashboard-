@@ -9,6 +9,11 @@ import {
 } from '../domain/calls'
 import { normalizeAssignmentState } from '../domain/assignments'
 import {
+  normalizePestSprayDates,
+  normalizePestSprayRoomName,
+  pestSprayRoomKey,
+} from '../domain/pestSpray'
+import {
   isReminderForDate,
   normalizeReminderIntervalDays,
   normalizeReminderWeekdays,
@@ -22,6 +27,7 @@ import type {
   CreateBathroomCleaningEntryInput,
   CreateCleaningEntryInput,
   CreateGokiLockEntryInput,
+  CreatePestSprayEntryInput,
   CreateLinkInput,
   CreateNoteInput,
   CreateReminderInput,
@@ -29,6 +35,8 @@ import type {
   CreateTaskInput,
   ISODate,
   GokiLockEntry,
+  PestSprayEntry,
+  PestSprayRoomInput,
   LinkEntry,
   Note,
   Reminder,
@@ -120,6 +128,9 @@ export interface WorkspaceApi {
   addGokiLockEntries: (inputs: CreateGokiLockEntryInput[]) => GokiLockEntry[]
   updateGokiLockEntry: (id: string, patch: UpdateGokiLockEntryInput) => void
   deleteGokiLockEntry: (id: string) => void
+  addPestSprayEntries: (inputs: CreatePestSprayEntryInput[]) => PestSprayEntry[]
+  recordPestSpray: (sprayDate: ISODate, rooms: PestSprayRoomInput[]) => void
+  deletePestSprayEntry: (id: string) => void
   addRuleNote: (input?: CreateRuleNoteInput) => RuleNote
   updateRuleNote: (id: string, patch: UpdateRuleNoteInput) => void
   deleteRuleNote: (id: string) => void
@@ -1048,6 +1059,123 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     [updateData],
   )
 
+  const addPestSprayEntries = useCallback(
+    (inputs: CreatePestSprayEntryInput[]): PestSprayEntry[] => {
+      if (!inputs.length) return []
+
+      const createdAt = timestamp()
+      const entriesByRoomKey = new Map<string, PestSprayEntry>()
+      for (const input of inputs) {
+        const property = input.property ?? 'allen'
+        const roomName = normalizePestSprayRoomName(input.roomName ?? '')
+        const roomKey = pestSprayRoomKey(roomName)
+        if (!roomName || !roomKey || property === 'all') continue
+
+        entriesByRoomKey.set(`${property}:${roomKey}`, {
+          id: createId('pest-spray'),
+          property,
+          roomName,
+          sprayDates: normalizePestSprayDates(input.sprayDates),
+          createdAt,
+          updatedAt: createdAt,
+        })
+      }
+      const entries = [...entriesByRoomKey.values()]
+
+      if (!entries.length) return []
+      updateData((current) => {
+        const existingRoomKeys = new Set(
+          current.pestSprayEntries.map(
+            (entry) => `${entry.property}:${pestSprayRoomKey(entry.roomName)}`,
+          ),
+        )
+        const newEntries = entries.filter(
+          (entry) => !existingRoomKeys.has(`${entry.property}:${pestSprayRoomKey(entry.roomName)}`),
+        )
+        return {
+          ...current,
+          pestSprayEntries: [...newEntries, ...current.pestSprayEntries],
+        }
+      })
+      return entries
+    },
+    [updateData],
+  )
+
+  const recordPestSpray = useCallback(
+    (sprayDate: ISODate, rooms: PestSprayRoomInput[]): void => {
+      if (!isISODate(sprayDate) || !rooms.length) return
+
+      const uniqueRooms = new Map<string, PestSprayRoomInput>()
+      for (const room of rooms) {
+        const roomName = normalizePestSprayRoomName(room.roomName)
+        const roomKey = pestSprayRoomKey(roomName)
+        if (!roomName || !roomKey || room.property === 'all') continue
+        uniqueRooms.set(`${room.property}:${roomKey}`, { ...room, roomName })
+      }
+      if (!uniqueRooms.size) return
+
+      const updatedAt = timestamp()
+      updateData((current) => {
+        const entryIdByRoomKey = new Map(
+          current.pestSprayEntries.map((entry) => [
+            `${entry.property}:${pestSprayRoomKey(entry.roomName)}`,
+            entry.id,
+          ]),
+        )
+        const sprayDateByEntryId = new Map<string, ISODate>()
+        const newEntries: PestSprayEntry[] = []
+
+        for (const [roomKey, room] of uniqueRooms) {
+          const existingEntryId = entryIdByRoomKey.get(roomKey)
+          if (existingEntryId) {
+            sprayDateByEntryId.set(existingEntryId, sprayDate)
+          } else {
+            newEntries.push({
+              id: createId('pest-spray'),
+              property: room.property,
+              roomName: room.roomName,
+              sprayDates: [sprayDate],
+              createdAt: updatedAt,
+              updatedAt,
+            })
+          }
+        }
+
+        return {
+          ...current,
+          pestSprayEntries: [
+            ...newEntries,
+            ...current.pestSprayEntries.map((entry) => {
+              const recordedDate = sprayDateByEntryId.get(entry.id)
+              return recordedDate
+                ? {
+                    ...entry,
+                    sprayDates: normalizePestSprayDates([
+                      ...entry.sprayDates,
+                      recordedDate,
+                    ]),
+                    updatedAt,
+                  }
+                : entry
+            }),
+          ],
+        }
+      })
+    },
+    [updateData],
+  )
+
+  const deletePestSprayEntry = useCallback(
+    (id: string): void => {
+      updateData((current) => ({
+        ...current,
+        pestSprayEntries: current.pestSprayEntries.filter((entry) => entry.id !== id),
+      }))
+    },
+    [updateData],
+  )
+
   const addRuleNote = useCallback(
     (input: CreateRuleNoteInput = {}): RuleNote => {
       const createdAt = timestamp()
@@ -1206,6 +1334,9 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
     addGokiLockEntries,
     updateGokiLockEntry,
     deleteGokiLockEntry,
+    addPestSprayEntries,
+    recordPestSpray,
+    deletePestSprayEntry,
     addRuleNote,
     updateRuleNote,
     deleteRuleNote,

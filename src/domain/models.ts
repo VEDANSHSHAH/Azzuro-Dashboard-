@@ -201,6 +201,21 @@ export interface GokiLockEntry {
   updatedAt: ISODateTime
 }
 
+/** A room-level pest spray register with every recorded spray date retained. */
+export interface PestSprayEntry {
+  id: string
+  property: Property
+  roomName: string
+  sprayDates: ISODate[]
+  createdAt: ISODateTime
+  updatedAt: ISODateTime
+}
+
+export interface PestSprayRoomInput {
+  property: Property
+  roomName: string
+}
+
 export interface RuleNote {
   id: string
   title: string
@@ -231,6 +246,7 @@ export interface AppData {
   cleaningEntries: CleaningEntry[]
   bathroomCleaningEntries: BathroomCleaningEntry[]
   gokiLockEntries: GokiLockEntry[]
+  pestSprayEntries: PestSprayEntry[]
   ruleNotes: RuleNote[]
   links: LinkEntry[]
   updatedAt: ISODateTime
@@ -353,6 +369,12 @@ export interface CreateGokiLockEntryInput {
 export type UpdateGokiLockEntryInput = Partial<
   Pick<GokiLockEntry, 'property' | 'roomName' | 'lockChanged' | 'changedDate' | 'notes'>
 >
+
+export interface CreatePestSprayEntryInput {
+  property?: Property
+  roomName?: string
+  sprayDates?: ISODate[]
+}
 
 export type UpdateCleaningEntryInput = Partial<
   Pick<

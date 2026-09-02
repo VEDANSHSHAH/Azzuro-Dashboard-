@@ -10,6 +10,7 @@ import {
   normalizeReminderIntervalDays,
   normalizeReminderWeekdays,
 } from '../domain/reminders'
+import { normalizePestSprayDates } from '../domain/pestSpray'
 import { repairTaskParentLinks } from '../domain/taskChains'
 import {
   CLEANING_STATUSES,
@@ -24,6 +25,7 @@ import {
   type CleaningStatus,
   type LinkEntry,
   type GokiLockEntry,
+  type PestSprayEntry,
   type Note,
   type Property,
   type Reminder,
@@ -105,6 +107,7 @@ export function createEmptyAppData(): AppData {
     cleaningEntries: [],
     bathroomCleaningEntries: [],
     gokiLockEntries: [],
+    pestSprayEntries: [],
     ruleNotes: [],
     links: [],
     updatedAt: now(),
@@ -235,6 +238,22 @@ function normalizeGokiLockEntry(
   }
 }
 
+function normalizePestSprayEntry(
+  value: unknown,
+  fallbackTimestamp: string,
+): PestSprayEntry | null {
+  if (!isRecord(value)) return null
+
+  return {
+    id: text(value.id) || createId('pest-spray'),
+    property: property(value.property),
+    roomName: text(value.roomName),
+    sprayDates: normalizePestSprayDates(value.sprayDates),
+    createdAt: timestamp(value.createdAt, fallbackTimestamp),
+    updatedAt: timestamp(value.updatedAt, fallbackTimestamp),
+  }
+}
+
 function normalizeRuleNote(value: unknown, fallbackTimestamp: string): RuleNote | null {
   if (!isRecord(value)) return null
 
@@ -305,6 +324,11 @@ export function normalizeAppData(value: unknown): AppData {
     gokiLockEntries: normalizeList(
       value.gokiLockEntries,
       normalizeGokiLockEntry,
+      fallbackTimestamp,
+    ),
+    pestSprayEntries: normalizeList(
+      value.pestSprayEntries,
+      normalizePestSprayEntry,
       fallbackTimestamp,
     ),
     ruleNotes: normalizeList(value.ruleNotes, normalizeRuleNote, fallbackTimestamp),

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { format } from 'date-fns'
 import {
   Bath,
+  Bug,
   CalendarClock,
   Check,
   Edit3,
@@ -33,17 +34,21 @@ import {
   type CleaningEntry,
   type CleaningStatus,
   type GokiLockEntry,
+  type PestSprayEntry,
+  type PestSprayRoomInput,
   type Property,
+  parsePestSprayRoomList,
 } from '../domain'
 import type { WorkspaceApi } from '../hooks'
 import { propertyLabel } from '../features/work-items'
 
-type CleaningView = 'logs' | 'bathrooms' | 'locks'
+type CleaningView = 'logs' | 'bathrooms' | 'locks' | 'pest-spray'
 
 const registerOptions = [
   { value: 'logs', label: 'Cleaning log', icon: Sparkles },
   { value: 'bathrooms', label: 'Bathrooms', icon: Bath },
   { value: 'locks', label: 'Goki locks', icon: KeyRound },
+  { value: 'pest-spray', label: 'Pest spray', icon: Bug },
 ] as const
 
 const propertyChoices = PROPERTY_OPTIONS.filter((option) => option.value !== 'all')
@@ -54,6 +59,7 @@ const lockChangedOptions = [
 
 const MAX_BULK_REGISTER_ENTRIES = 100
 const MAX_REGISTER_ENTRY_NAME_LENGTH = 120
+const MAX_PEST_SPRAY_IMPORT_ENTRIES = 500
 
 interface CleaningPageProps {
   workspace: WorkspaceApi
@@ -110,6 +116,9 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
   const [bathroomBulkOpen, setBathroomBulkOpen] = useState(false)
   const [lockEditorOpen, setLockEditorOpen] = useState(false)
   const [lockBulkOpen, setLockBulkOpen] = useState(false)
+  const [pestSprayBulkOpen, setPestSprayBulkOpen] = useState(false)
+  const [pestSprayMasterImportOpen, setPestSprayMasterImportOpen] = useState(false)
+  const [pestSprayImportOpen, setPestSprayImportOpen] = useState(false)
   const [editingCleaning, setEditingCleaning] = useState<CleaningEntry | null>(null)
   const [editingBathroom, setEditingBathroom] = useState<BathroomCleaningEntry | null>(null)
   const [editingLock, setEditingLock] = useState<GokiLockEntry | null>(null)
@@ -129,6 +138,16 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
       includesSearch(query, entry.roomName, entry.notes, propertyLabel(entry.property))),
     [query, workspace.data.gokiLockEntries],
   )
+  const pestSprayEntries = useMemo(
+    () => workspace.data.pestSprayEntries.filter((entry) =>
+      includesSearch(
+        query,
+        entry.roomName,
+        entry.sprayDates.join(' '),
+        propertyLabel(entry.property),
+      )),
+    [query, workspace.data.pestSprayEntries],
+  )
 
   const addLabel = view === 'logs' ? 'Add cleaning note' : 'Add Goki lock'
   const addIcon = view === 'locks' ? KeyRound : Plus
@@ -140,7 +159,7 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
     } else if (view === 'bathrooms') {
       setEditingBathroom(null)
       setBathroomEditorOpen(true)
-    } else {
+    } else if (view === 'locks') {
       setEditingLock(null)
       setLockEditorOpen(true)
     }
@@ -151,7 +170,7 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
       <PageHeader
         eyebrow="Property operations"
         title="Cleaning registers"
-        description={<p>Keep the regular cleaning log, deep-clean every bathroom by property, and maintain Goki lock changes room by room.</p>}
+        description={<p>Keep the regular cleaning log, deep-clean every bathroom by property, maintain Goki locks, and track pest spray history room by room.</p>}
         actions={view === 'bathrooms' ? (
           <>
             <Button
@@ -173,6 +192,26 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
               Add room list
             </Button>
             <Button leadingIcon={KeyRound} onClick={openNew}>Add Goki lock</Button>
+          </>
+        ) : view === 'pest-spray' ? (
+          <>
+            <Button
+              variant="secondary"
+              leadingIcon={ListPlus}
+              onClick={() => setPestSprayBulkOpen(true)}
+            >
+              Add room list
+            </Button>
+            <Button
+              variant="secondary"
+              leadingIcon={ListPlus}
+              onClick={() => setPestSprayMasterImportOpen(true)}
+            >
+              Paste master rooms
+            </Button>
+            <Button leadingIcon={Bug} onClick={() => setPestSprayImportOpen(true)}>
+              Paste spray list
+            </Button>
           </>
         ) : (
           <Button leadingIcon={addIcon} onClick={openNew}>{addLabel}</Button>
@@ -225,6 +264,14 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
           onDelete={workspace.deleteGokiLockEntry}
         />
       ) : null}
+      {view === 'pest-spray' ? (
+        <PestSprayRegister
+          entries={pestSprayEntries}
+          query={query}
+          onNew={() => setPestSprayBulkOpen(true)}
+          onDelete={workspace.deletePestSprayEntry}
+        />
+      ) : null}
 
       <CleaningEditorModal
         open={cleaningEditorOpen}
@@ -272,6 +319,27 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
             roomNames.map((roomName) => ({ property, roomName })),
           )
         }}
+      />
+      <PestSprayBulkModal
+        open={pestSprayBulkOpen}
+        existingEntries={workspace.data.pestSprayEntries}
+        onClose={() => setPestSprayBulkOpen(false)}
+        onSave={(property, roomNames) => {
+          workspace.addPestSprayEntries(
+            roomNames.map((roomName) => ({ property, roomName })),
+          )
+        }}
+      />
+      <PestSprayImportModal
+        open={pestSprayImportOpen}
+        today={workspace.today}
+        onClose={() => setPestSprayImportOpen(false)}
+        onSave={workspace.recordPestSpray}
+      />
+      <PestSprayMasterImportModal
+        open={pestSprayMasterImportOpen}
+        onClose={() => setPestSprayMasterImportOpen(false)}
+        onSave={workspace.addPestSprayEntries}
       />
     </div>
   )
@@ -422,6 +490,67 @@ function GokiLockRegister({
               </div>
             </article>
           ))}
+        </div>
+      )}
+    />
+  )
+}
+
+function PestSprayRegister({
+  entries,
+  query,
+  onNew,
+  onDelete,
+}: {
+  entries: PestSprayEntry[]
+  query: string
+  onNew: () => void
+  onDelete: (id: string) => void
+}) {
+  return (
+    <RegisterLayout
+      icon={Bug}
+      title={query ? 'No matching pest spray rooms' : 'Build your pest spray register'}
+      description={query
+        ? 'Try another search phrase.'
+        : 'Add room lists for each property, then paste the empty-room report each time pest spray is completed.'}
+      onNew={onNew}
+      newLabel="Add room list"
+      entries={entries}
+      renderGroup={(_property, propertyEntries) => (
+        <div className="register-list">
+          {propertyEntries.map((entry) => {
+            const recentDates = entry.sprayDates.slice(0, 4)
+            return (
+              <article className="register-row" key={entry.id}>
+                <div className="register-row__main">
+                  <strong>{entry.roomName || 'Unnamed room'}</strong>
+                  <p>
+                    {recentDates.length
+                      ? `Spray history: ${recentDates.map((date) => format(fromISODate(date), 'd MMM yyyy')).join(' · ')}`
+                      : 'No pest spray recorded yet.'}
+                  </p>
+                </div>
+                <span className={`register-state ${entry.sprayDates.length ? 'register-state--sprayed' : 'register-state--not-sprayed'}`}>
+                  {entry.sprayDates.length ? <Check aria-hidden="true" /> : null}
+                  {entry.sprayDates.length ? 'Sprayed' : 'Not sprayed'}
+                </span>
+                <div className="register-row__detail"><small>Last sprayed</small><DateValue value={entry.sprayDates[0] ?? null} /></div>
+                <div className="register-row__detail"><small>Spray history</small><span>{entry.sprayDates.length} {entry.sprayDates.length === 1 ? 'record' : 'records'}</span></div>
+                <div className="register-row__actions">
+                  <IconButton
+                    label={`Delete ${entry.roomName || 'room'} from the pest spray register`}
+                    icon={Trash2}
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm('Delete this room and its pest spray history?')) onDelete(entry.id)
+                    }}
+                  />
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
     />
@@ -877,6 +1006,250 @@ function GokiLockBulkModal({
       defaultPrefixForProperty={gokiRoomPrefix}
       startingDetails="New entries start as “Not changed” with empty details."
     />
+  )
+}
+
+interface PestSprayBulkModalProps {
+  open: boolean
+  existingEntries: PestSprayEntry[]
+  onClose: () => void
+  onSave: (property: Property, roomNames: string[]) => void
+}
+
+function PestSprayBulkModal({
+  open,
+  existingEntries,
+  onClose,
+  onSave,
+}: PestSprayBulkModalProps) {
+  return (
+    <BulkRegisterModal
+      open={open}
+      existingEntries={existingEntries}
+      getEntryName={(entry) => entry.roomName}
+      onClose={onClose}
+      onSave={onSave}
+      title="Add a pest spray room list"
+      description="Build each property's room register once. Later, paste the empty-room report to record every room sprayed that day."
+      formId="pest-spray-bulk-form"
+      entryLabel="room"
+      entryLabelPlural="rooms"
+      inputLabel="Room names or numbers"
+      inputPlaceholder={'Room 1\nRoom 2\nRoom 101'}
+      previewAriaLabel="Pest spray rooms ready to add"
+      generatedExample="For example, generate Room 1 through Room 25."
+      initialPrefix="Room"
+      prefixPlaceholder="e.g. Room"
+      defaultPrefixForProperty={gokiRoomPrefix}
+      startingDetails="New rooms have no spray record until they appear in a pasted spray list."
+    />
+  )
+}
+
+function PestSprayRoomPreview({
+  rooms,
+  title,
+  sprayDate,
+}: {
+  rooms: PestSprayRoomInput[]
+  title: string
+  sprayDate?: string
+}) {
+  const groupedRooms = propertyChoices
+    .map((propertyOption) => ({
+      property: propertyOption.value,
+      rooms: rooms.filter((room) => room.property === propertyOption.value),
+    }))
+    .filter((group) => group.rooms.length)
+
+  return (
+    <section className="pest-spray-import__preview form-grid__full" aria-live="polite">
+      <div className="pest-spray-import__preview-heading">
+        <strong>{rooms.length} rooms ready to {title}</strong>
+        {sprayDate ? <span>{format(fromISODate(sprayDate), 'd MMM yyyy')}</span> : null}
+      </div>
+      {groupedRooms.length ? (
+        <div className="pest-spray-import__groups">
+          {groupedRooms.map((group) => (
+            <div className="pest-spray-import__group" key={group.property}>
+              <PropertyBadge property={propertyLabel(group.property)} size="sm" />
+              <span>{group.rooms.map((room) => room.roomName).join(', ')}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>Add a property heading followed by its room list to preview the rooms before saving.</p>
+      )}
+    </section>
+  )
+}
+
+function PestSprayMasterImportModal({
+  open,
+  onClose,
+  onSave,
+}: {
+  open: boolean
+  onClose: () => void
+  onSave: (rooms: PestSprayRoomInput[]) => void
+}) {
+  const [listText, setListText] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setListText('')
+    setSubmitted(false)
+  }, [open])
+
+  const parsedRooms = useMemo(() => parsePestSprayRoomList(listText), [listText])
+  const tooManyRooms = parsedRooms.length > MAX_PEST_SPRAY_IMPORT_ENTRIES
+  const listError = tooManyRooms
+    ? `Paste up to ${MAX_PEST_SPRAY_IMPORT_ENTRIES} rooms at once.`
+    : submitted && !parsedRooms.length
+      ? 'Add a property heading and at least one room number.'
+      : undefined
+
+  function saveMasterRooms(event: FormEvent) {
+    event.preventDefault()
+    setSubmitted(true)
+    if (!parsedRooms.length || tooManyRooms) return
+    onSave(parsedRooms)
+    onClose()
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      className="pest-spray-import-dialog"
+      title="Paste master room list"
+      description="Paste the full room list for all five properties. Only a property heading and a room number are kept—codes, floor details, bed counts, and notes are ignored."
+      footer={(
+        <>
+          <Button variant="quiet" onClick={onClose}>Cancel</Button>
+          <Button
+            type="submit"
+            form="pest-spray-master-form"
+            leadingIcon={ListPlus}
+            disabled={!parsedRooms.length || tooManyRooms}
+          >
+            Add {parsedRooms.length || ''} {parsedRooms.length === 1 ? 'room' : 'rooms'}
+          </Button>
+        </>
+      )}
+    >
+      <form id="pest-spray-master-form" className="form-grid" onSubmit={saveMasterRooms}>
+        <TextareaField
+          label="All property room lists"
+          hint="Paste the full spreadsheet or report. It can contain extra information; only room labels such as Room 101 under a property heading are used."
+          placeholder={'Central\nRoom 101\nRoom 102\n\nPotts Point\nRoom 1\nRoom 2'}
+          value={listText}
+          rows={15}
+          required
+          data-autofocus
+          error={listError}
+          fieldClassName="form-grid__full"
+          onChange={(event) => {
+            setListText(event.target.value)
+            setSubmitted(false)
+          }}
+        />
+        <PestSprayRoomPreview rooms={parsedRooms} title="add" />
+      </form>
+    </Modal>
+  )
+}
+
+function PestSprayImportModal({
+  open,
+  today,
+  onClose,
+  onSave,
+}: {
+  open: boolean
+  today: string
+  onClose: () => void
+  onSave: (sprayDate: string, rooms: PestSprayRoomInput[]) => void
+}) {
+  const [sprayDate, setSprayDate] = useState('')
+  const [listText, setListText] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setSprayDate(today)
+    setListText('')
+    setSubmitted(false)
+  }, [open, today])
+
+  const parsedRooms = useMemo(() => parsePestSprayRoomList(listText), [listText])
+  const tooManyRooms = parsedRooms.length > MAX_PEST_SPRAY_IMPORT_ENTRIES
+  const listError = tooManyRooms
+    ? `Paste up to ${MAX_PEST_SPRAY_IMPORT_ENTRIES} rooms at once.`
+    : submitted && !parsedRooms.length
+      ? 'Add a property heading and at least one room number.'
+      : undefined
+
+  function saveSprayList(event: FormEvent) {
+    event.preventDefault()
+    setSubmitted(true)
+    if (!sprayDate || !parsedRooms.length || tooManyRooms) return
+    onSave(sprayDate, parsedRooms)
+    onClose()
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      className="pest-spray-import-dialog"
+      title="Paste pest spray list"
+      description="Paste the daily empty-room report. The matching rooms will be marked as sprayed on the chosen date, while older spray records stay intact."
+      footer={(
+        <>
+          <Button variant="quiet" onClick={onClose}>Cancel</Button>
+          <Button
+            type="submit"
+            form="pest-spray-import-form"
+            leadingIcon={Bug}
+            disabled={!sprayDate || !parsedRooms.length || tooManyRooms}
+          >
+            Record {parsedRooms.length || ''} sprayed {parsedRooms.length === 1 ? 'room' : 'rooms'}
+          </Button>
+        </>
+      )}
+    >
+      <form id="pest-spray-import-form" className="form-grid" onSubmit={saveSprayList}>
+        <TextField
+          label="Sprayed on"
+          type="date"
+          value={sprayDate}
+          required
+          onChange={(event) => setSprayDate(event.target.value)}
+        />
+        <div className="pest-spray-import__guide">
+          <Bug aria-hidden="true" />
+          <span>Headings can be in any order. Use property names such as Central, Allen, Pyrmont, Olympic, or Potts Point.</span>
+        </div>
+        <TextareaField
+          label="Empty rooms that received pest spray"
+          hint="The parser understands headings, markdown bullets, Room 7, 7, and comma-separated room numbers."
+          placeholder={'OLYMPIC – Empty Rooms\n- Room 7\n- Room 8\n\nPOTTS POINT\nRooms 101, 104, 105'}
+          value={listText}
+          rows={12}
+          required
+          data-autofocus
+          error={listError}
+          fieldClassName="form-grid__full"
+          onChange={(event) => {
+            setListText(event.target.value)
+            setSubmitted(false)
+          }}
+        />
+        <PestSprayRoomPreview rooms={parsedRooms} title="record" sprayDate={sprayDate} />
+      </form>
+    </Modal>
   )
 }
 
