@@ -9,6 +9,25 @@ const propertyMatchers: ReadonlyArray<readonly [Property, RegExp]> = [
   ['allen', /\ballen\b/i],
 ]
 
+/**
+ * The initial room register supplied for this private operations workspace.
+ * It contains only property names and room labels; source codes and room details
+ * are deliberately not retained here.
+ */
+const masterRoomNumbers: ReadonlyArray<readonly [Property, readonly string[]]> = [
+  ['central', ['101', '102', '103', '104', '201', '202', '203', '204', '205', '206', '207']],
+  ['potts-point', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '204', '204A', '305', '305A', '301', '301A', '302', '302A', '303', '304', '304A', '101', '101A', '102', '102A', '103', '104', '105']],
+  ['allen', Array.from({ length: 28 }, (_, index) => String(index + 1))],
+  ['olympic', Array.from({ length: 30 }, (_, index) => String(index + 1))],
+  ['pyrmont', Array.from({ length: 14 }, (_, index) => String(index + 1))],
+]
+
+export function getInitialPestSprayRooms(): PestSprayRoomInput[] {
+  return masterRoomNumbers.flatMap(([property, roomNumbers]) =>
+    roomNumbers.map((roomNumber) => ({ property, roomName: `Room ${roomNumber}` })),
+  )
+}
+
 function normalizeWhitespace(value: string): string {
   return value.normalize('NFKC').trim().replace(/\s+/g, ' ')
 }

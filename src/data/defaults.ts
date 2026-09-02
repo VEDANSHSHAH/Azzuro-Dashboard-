@@ -10,7 +10,7 @@ import {
   normalizeReminderIntervalDays,
   normalizeReminderWeekdays,
 } from '../domain/reminders'
-import { normalizePestSprayDates } from '../domain/pestSpray'
+import { getInitialPestSprayRooms, normalizePestSprayDates } from '../domain/pestSpray'
 import { repairTaskParentLinks } from '../domain/taskChains'
 import {
   CLEANING_STATUSES,
@@ -99,6 +99,7 @@ export function createId(prefix: string): string {
 }
 
 export function createEmptyAppData(): AppData {
+  const createdAt = now()
   return {
     version: 1,
     notes: [],
@@ -107,7 +108,15 @@ export function createEmptyAppData(): AppData {
     cleaningEntries: [],
     bathroomCleaningEntries: [],
     gokiLockEntries: [],
-    pestSprayEntries: [],
+    pestSprayEntries: getInitialPestSprayRooms().map(({ property, roomName }) => ({
+      id: createId('pest-spray'),
+      property,
+      roomName,
+      sprayDates: [],
+      createdAt,
+      updatedAt: createdAt,
+    })),
+    pestSprayRegisterInitialized: true,
     ruleNotes: [],
     links: [],
     updatedAt: now(),
@@ -306,6 +315,14 @@ export function normalizeAppData(value: unknown): AppData {
   const tasks = normalizeList(value.tasks, normalizeTask, fallbackTimestamp)
   const repairedTasks = repairCallPointTaskReferences(repairTaskParentLinks(tasks))
 
+  const pestSprayEntries = normalizeList(
+    value.pestSprayEntries,
+    normalizePestSprayEntry,
+    fallbackTimestamp,
+  )
+  const pestSprayRegisterInitialized = value.pestSprayRegisterInitialized === true
+  const shouldInitializePestSprayRegister = !pestSprayRegisterInitialized && !pestSprayEntries.length
+
   return {
     version: 1,
     notes: normalizeList(value.notes, normalizeNote, fallbackTimestamp),
@@ -326,11 +343,17 @@ export function normalizeAppData(value: unknown): AppData {
       normalizeGokiLockEntry,
       fallbackTimestamp,
     ),
-    pestSprayEntries: normalizeList(
-      value.pestSprayEntries,
-      normalizePestSprayEntry,
-      fallbackTimestamp,
-    ),
+    pestSprayEntries: shouldInitializePestSprayRegister
+      ? getInitialPestSprayRooms().map(({ property, roomName }) => ({
+          id: createId('pest-spray'),
+          property,
+          roomName,
+          sprayDates: [],
+          createdAt: fallbackTimestamp,
+          updatedAt: fallbackTimestamp,
+        }))
+      : pestSprayEntries,
+    pestSprayRegisterInitialized: pestSprayRegisterInitialized || shouldInitializePestSprayRegister,
     ruleNotes: normalizeList(value.ruleNotes, normalizeRuleNote, fallbackTimestamp),
     links: normalizeList(value.links, normalizeLink, fallbackTimestamp),
     updatedAt: timestamp(value.updatedAt, fallbackTimestamp),

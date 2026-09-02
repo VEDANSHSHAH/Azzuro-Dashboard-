@@ -1095,6 +1095,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
         return {
           ...current,
           pestSprayEntries: [...newEntries, ...current.pestSprayEntries],
+          pestSprayRegisterInitialized: true,
         }
       })
       return entries
@@ -1160,6 +1161,7 @@ export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceApi {
                 : entry
             }),
           ],
+          pestSprayRegisterInitialized: true,
         }
       })
     },

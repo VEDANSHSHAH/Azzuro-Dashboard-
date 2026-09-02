@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { format } from 'date-fns'
+import { format, subMonths } from 'date-fns'
 import {
   Bath,
   Bug,
@@ -119,6 +119,7 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
   const [pestSprayBulkOpen, setPestSprayBulkOpen] = useState(false)
   const [pestSprayMasterImportOpen, setPestSprayMasterImportOpen] = useState(false)
   const [pestSprayImportOpen, setPestSprayImportOpen] = useState(false)
+  const [pestSprayReportRoom, setPestSprayReportRoom] = useState<PestSprayEntry | null>(null)
   const [editingCleaning, setEditingCleaning] = useState<CleaningEntry | null>(null)
   const [editingBathroom, setEditingBathroom] = useState<BathroomCleaningEntry | null>(null)
   const [editingLock, setEditingLock] = useState<GokiLockEntry | null>(null)
@@ -268,7 +269,10 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
         <PestSprayRegister
           entries={pestSprayEntries}
           query={query}
-          onNew={() => setPestSprayBulkOpen(true)}
+          today={workspace.today}
+          onAddRoomList={() => setPestSprayBulkOpen(true)}
+          onMasterImport={() => setPestSprayMasterImportOpen(true)}
+          onOpenReport={setPestSprayReportRoom}
           onDelete={workspace.deletePestSprayEntry}
         />
       ) : null}
@@ -328,18 +332,31 @@ export function CleaningPage({ workspace, query }: CleaningPageProps) {
           workspace.addPestSprayEntries(
             roomNames.map((roomName) => ({ property, roomName })),
           )
+          workspace.flush()
         }}
       />
       <PestSprayImportModal
         open={pestSprayImportOpen}
         today={workspace.today}
         onClose={() => setPestSprayImportOpen(false)}
-        onSave={workspace.recordPestSpray}
+        onSave={(sprayDate, rooms) => {
+          workspace.recordPestSpray(sprayDate, rooms)
+          workspace.flush()
+        }}
       />
       <PestSprayMasterImportModal
         open={pestSprayMasterImportOpen}
         onClose={() => setPestSprayMasterImportOpen(false)}
-        onSave={workspace.addPestSprayEntries}
+        onSave={(rooms) => {
+          const entries = workspace.addPestSprayEntries(rooms)
+          workspace.flush()
+          return entries
+        }}
+      />
+      <PestSprayRoomReportModal
+        entry={pestSprayReportRoom}
+        today={workspace.today}
+        onClose={() => setPestSprayReportRoom(null)}
       />
     </div>
   )
@@ -499,61 +516,175 @@ function GokiLockRegister({
 function PestSprayRegister({
   entries,
   query,
-  onNew,
+  today,
+  onAddRoomList,
+  onMasterImport,
+  onOpenReport,
   onDelete,
 }: {
   entries: PestSprayEntry[]
   query: string
-  onNew: () => void
+  today: string
+  onAddRoomList: () => void
+  onMasterImport: () => void
+  onOpenReport: (entry: PestSprayEntry) => void
   onDelete: (id: string) => void
 }) {
+  const twoMonthsAgo = format(subMonths(fromISODate(today), 2), 'yyyy-MM-dd')
+
   return (
-    <RegisterLayout
-      icon={Bug}
-      title={query ? 'No matching pest spray rooms' : 'Build your pest spray register'}
-      description={query
-        ? 'Try another search phrase.'
-        : 'Add room lists for each property, then paste the empty-room report each time pest spray is completed.'}
-      onNew={onNew}
-      newLabel="Add room list"
-      entries={entries}
-      renderGroup={(_property, propertyEntries) => (
-        <div className="register-list">
-          {propertyEntries.map((entry) => {
-            const recentDates = entry.sprayDates.slice(0, 4)
-            return (
-              <article className="register-row" key={entry.id}>
-                <div className="register-row__main">
-                  <strong>{entry.roomName || 'Unnamed room'}</strong>
-                  <p>
-                    {recentDates.length
-                      ? `Spray history: ${recentDates.map((date) => format(fromISODate(date), 'd MMM yyyy')).join(' · ')}`
-                      : 'No pest spray recorded yet.'}
-                  </p>
-                </div>
-                <span className={`register-state ${entry.sprayDates.length ? 'register-state--sprayed' : 'register-state--not-sprayed'}`}>
-                  {entry.sprayDates.length ? <Check aria-hidden="true" /> : null}
-                  {entry.sprayDates.length ? 'Sprayed' : 'Not sprayed'}
-                </span>
-                <div className="register-row__detail"><small>Last sprayed</small><DateValue value={entry.sprayDates[0] ?? null} /></div>
-                <div className="register-row__detail"><small>Spray history</small><span>{entry.sprayDates.length} {entry.sprayDates.length === 1 ? 'record' : 'records'}</span></div>
-                <div className="register-row__actions">
-                  <IconButton
-                    label={`Delete ${entry.roomName || 'room'} from the pest spray register`}
-                    icon={Trash2}
-                    variant="danger"
-                    size="sm"
-                    onClick={() => {
-                      if (window.confirm('Delete this room and its pest spray history?')) onDelete(entry.id)
-                    }}
-                  />
-                </div>
-              </article>
-            )
-          })}
+    <div className="pest-spray-register">
+      {!entries.length && !query ? (
+        <section className="section-card pest-spray-register__intro">
+          <div>
+            <strong>Set up your property room register</strong>
+            <p>Paste the master room list once. Every room stays visible here, ready for each pest-spray update.</p>
+          </div>
+          <div className="pest-spray-register__intro-actions">
+            <Button size="sm" variant="secondary" leadingIcon={ListPlus} onClick={onMasterImport}>Paste master rooms</Button>
+            <Button size="sm" leadingIcon={Plus} onClick={onAddRoomList}>Add room list</Button>
+          </div>
+        </section>
+      ) : null}
+
+      {propertyChoices.map((option) => {
+        const propertyEntries = entries
+          .filter((entry) => entry.property === option.value)
+          .sort((left, right) => left.roomName.localeCompare(right.roomName, undefined, { numeric: true, sensitivity: 'base' }))
+
+        return (
+          <section className="section-card pest-spray-group" key={option.value}>
+            <div className="section-card__header">
+              <div className="section-card__heading">
+                <Bug aria-hidden="true" />
+                <h2 className="section-card__title">{option.label}</h2>
+                <span className="section-card__count">{propertyEntries.length}</span>
+              </div>
+              <PropertyBadge property={option.label} size="sm" />
+            </div>
+            <div className="section-card__body">
+              <div className="pest-spray-table-wrap">
+                <table className="pest-spray-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Room</th>
+                      <th scope="col">Last sprayed</th>
+                      <th scope="col">Recent dates</th>
+                      <th scope="col">Past 2 months</th>
+                      <th scope="col">Pest sprayed?</th>
+                      <th scope="col"><span className="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {propertyEntries.length ? propertyEntries.map((entry) => {
+                      const recentDates = entry.sprayDates.filter((date) => date >= twoMonthsAgo)
+                      const displayDates = entry.sprayDates.slice(0, 3)
+                      const hasBeenSprayed = entry.sprayDates.length > 0
+
+                      return (
+                        <tr key={entry.id}>
+                          <td>
+                            <button className="pest-spray-table__room" type="button" onClick={() => onOpenReport(entry)}>
+                              {entry.roomName || 'Unnamed room'}
+                            </button>
+                          </td>
+                          <td><DateValue value={entry.sprayDates[0] ?? null} empty="Not yet" /></td>
+                          <td className="pest-spray-table__dates">
+                            {displayDates.length
+                              ? displayDates.map((date) => format(fromISODate(date), 'd MMM')).join(' · ')
+                              : '—'}
+                          </td>
+                          <td><span className="pest-spray-table__count">{recentDates.length} {recentDates.length === 1 ? 'time' : 'times'}</span></td>
+                          <td>
+                            <span className={`register-state ${hasBeenSprayed ? 'register-state--sprayed' : 'register-state--not-sprayed'}`}>
+                              {hasBeenSprayed ? <Check aria-hidden="true" /> : null}
+                              {hasBeenSprayed ? 'Sprayed' : 'Not sprayed'}
+                            </span>
+                          </td>
+                          <td>
+                            <IconButton
+                              label={`Delete ${entry.roomName || 'room'} from the pest spray register`}
+                              icon={Trash2}
+                              variant="danger"
+                              size="sm"
+                              onClick={() => {
+                                if (window.confirm('Delete this room and its pest spray history?')) onDelete(entry.id)
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      )
+                    }) : (
+                      <tr>
+                        <td className="pest-spray-table__empty" colSpan={6}>
+                          {query ? 'No matching rooms in this property.' : 'No rooms added yet. Paste or add this property’s room list.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )
+      })}
+    </div>
+  )
+}
+
+function PestSprayRoomReportModal({
+  entry,
+  today,
+  onClose,
+}: {
+  entry: PestSprayEntry | null
+  today: string
+  onClose: () => void
+}) {
+  const twoMonthsAgo = format(subMonths(fromISODate(today), 2), 'yyyy-MM-dd')
+  const recentDates = entry?.sprayDates.filter((date) => date >= twoMonthsAgo) ?? []
+
+  return (
+    <Modal
+      open={Boolean(entry)}
+      onClose={onClose}
+      title={`${entry?.roomName ?? 'Room'} pest spray report`}
+      description={entry ? `${propertyLabel(entry.property)} · Full history and the past two months.` : undefined}
+      footer={<Button onClick={onClose}>Close report</Button>}
+    >
+      {entry ? (
+        <div className="pest-spray-report">
+          <div className="pest-spray-report__summary">
+            <section className="pest-spray-report__metric">
+              <strong>{recentDates.length}</strong>
+              <span>{recentDates.length === 1 ? 'time sprayed' : 'times sprayed'} in the past two months</span>
+            </section>
+            <section className="pest-spray-report__latest">
+              <small>Latest spray</small>
+              <strong><DateValue value={entry.sprayDates[0] ?? null} empty="Not sprayed yet" /></strong>
+            </section>
+          </div>
+
+          <section className="pest-spray-report__history">
+            <h3>Past two months</h3>
+            {recentDates.length ? (
+              <ul>
+                {recentDates.map((date) => <li key={date}>{format(fromISODate(date), 'EEEE, d MMMM yyyy')}</li>)}
+              </ul>
+            ) : <p>No pest spray recorded in the past two months.</p>}
+          </section>
+
+          <section className="pest-spray-report__history">
+            <h3>All recorded spray dates</h3>
+            {entry.sprayDates.length ? (
+              <ul>
+                {entry.sprayDates.map((date) => <li key={date}>{format(fromISODate(date), 'EEEE, d MMMM yyyy')}</li>)}
+              </ul>
+            ) : <p>No pest spray has been recorded for this room yet.</p>}
+          </section>
         </div>
-      )}
-    />
+      ) : null}
+    </Modal>
   )
 }
 
@@ -1091,7 +1222,7 @@ function PestSprayMasterImportModal({
 }: {
   open: boolean
   onClose: () => void
-  onSave: (rooms: PestSprayRoomInput[]) => void
+  onSave: (rooms: PestSprayRoomInput[]) => PestSprayEntry[]
 }) {
   const [listText, setListText] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -1114,8 +1245,7 @@ function PestSprayMasterImportModal({
     event.preventDefault()
     setSubmitted(true)
     if (!parsedRooms.length || tooManyRooms) return
-    onSave(parsedRooms)
-    onClose()
+    if (onSave(parsedRooms).length) onClose()
   }
 
   return (

@@ -247,6 +247,8 @@ export interface AppData {
   bathroomCleaningEntries: BathroomCleaningEntry[]
   gokiLockEntries: GokiLockEntry[]
   pestSprayEntries: PestSprayEntry[]
+  /** Preserves an intentionally empty register after every room has been removed. */
+  pestSprayRegisterInitialized: boolean
   ruleNotes: RuleNote[]
   links: LinkEntry[]
   updatedAt: ISODateTime
